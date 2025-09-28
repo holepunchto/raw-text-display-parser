@@ -43,7 +43,9 @@ module.exports = class RawTextDisplayParser {
 
   _insertDisplay(upd) {
     let i = 0
-    for (; upd.start >= this.display[i]?.start; i++) {}
+    while (i < this.display.length && upd.start >= this.display[i].start) {
+      i++
+    }
     this.display.splice(i, 0, upd)
   }
 
