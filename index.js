@@ -34,6 +34,12 @@ module.exports = class RawTextDisplayParser {
     }
   }
 
+  _insertDisplay(upd) {
+    let i = 0
+    for (; upd.start >= this.display[i]?.start; i++) {}
+    this.display.splice(i, 0, upd)
+  }
+
   setPosition(position) {
     this.position = position
     this.range = null
@@ -222,7 +228,7 @@ module.exports = class RawTextDisplayParser {
     }
 
     this._clearPrevious(upd)
-    this.display.push(upd)
+    this._insertDisplay(upd)
 
     return true
   }
@@ -247,7 +253,7 @@ module.exports = class RawTextDisplayParser {
     }
 
     this._clearPrevious(upd)
-    this.display.push(upd)
+    this._insertDisplay(upd)
 
     return true
   }
@@ -264,7 +270,7 @@ module.exports = class RawTextDisplayParser {
     }
 
     this._clearPrevious(upd)
-    this.display.push(upd)
+    this._insertDisplay(upd)
 
     return true
   }
@@ -281,7 +287,7 @@ module.exports = class RawTextDisplayParser {
     }
 
     this._clearPrevious(upd)
-    this.display.push(upd)
+    this._insertDisplay(upd)
 
     return true
   }
