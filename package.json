@@ -3,9 +3,12 @@
   "version": "2.2.2",
   "description": "Small state machine to parse chat input state when using raw text",
   "main": "index.js",
+  "files": [
+    "index.js"
+  ],
   "scripts": {
     "format": "prettier --write .",
-    "test": "prettier --check . && brittle __test__/**/*.test.js"
+    "test": "prettier --check . && brittle test/*.test.js"
   },
   "devDependencies": {
     "brittle": "^3.19.0",
