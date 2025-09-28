@@ -3,7 +3,7 @@ const test = require('brittle')
 const Parser = require('..')
 
 test('apply two mentions', function (t) {
-  const p = new Parser({})
+  const p = new Parser()
 
   p.appendText('00 @user')
 
@@ -21,14 +21,14 @@ test('apply two mentions', function (t) {
 
   t.alike(p.display, [
     {
-      type: 1,
+      type: Parser.MENTION_ID,
       start: 3,
       end: 14,
       length: 11,
       memberId: '001'
     },
     {
-      type: 1,
+      type: Parser.MENTION_ID,
       start: 19,
       end: 30,
       length: 11,
@@ -38,7 +38,7 @@ test('apply two mentions', function (t) {
 })
 
 test('apply two mentions, then remove 1st one, then reapply it', function (t) {
-  const p = new Parser({})
+  const p = new Parser()
 
   p.appendText('00 @user')
   // Apply 1st mention
@@ -54,14 +54,14 @@ test('apply two mentions, then remove 1st one, then reapply it', function (t) {
 
   t.alike(p.display, [
     {
-      type: 1,
+      type: Parser.MENTION_ID,
       start: 3,
       end: 18,
       length: 15,
       memberId: '001'
     },
     {
-      type: 1,
+      type: Parser.MENTION_ID,
       start: 23,
       end: 40,
       length: 17,
@@ -78,7 +78,7 @@ test('apply two mentions, then remove 1st one, then reapply it', function (t) {
   t.is(p.text.slice(p.display[0].start, p.display[0].end), '@user2 nameee end')
   t.alike(p.display, [
     {
-      type: 1,
+      type: Parser.MENTION_ID,
       start: 21,
       end: 38,
       length: 17,
@@ -98,14 +98,14 @@ test('apply two mentions, then remove 1st one, then reapply it', function (t) {
 
   t.alike(p.display, [
     {
-      type: 1,
+      type: Parser.MENTION_ID,
       start: 3,
       end: 18,
       length: 15,
       memberId: '001'
     },
     {
-      type: 1,
+      type: Parser.MENTION_ID,
       start: 32,
       end: 49,
       length: 17,

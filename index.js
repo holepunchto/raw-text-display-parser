@@ -1,3 +1,9 @@
+const CLEAR_ID = 0 // just used internally
+const MENTION_ID = 1
+const EMOJI_ID = 2
+const LINK_ID = 3
+const PEAR_LINK_ID = 4
+
 module.exports = class RawTextDisplayParser {
   constructor(options = {}) {
     const {
@@ -23,6 +29,11 @@ module.exports = class RawTextDisplayParser {
     this.end = 0
     this.word = ''
   }
+
+  static MENTION_ID = MENTION_ID
+  static EMOJI_ID = EMOJI_ID
+  static LINK_ID = LINK_ID
+  static PEAR_LINK_ID = PEAR_LINK_ID
 
   reset(options = {}) {
     const { display = [], text = '' } = options
@@ -143,7 +154,7 @@ module.exports = class RawTextDisplayParser {
 
   _insert(start, end, text) {
     const upd = {
-      type: 'clear',
+      type: CLEAR_ID,
       start,
       end
     }
@@ -163,7 +174,7 @@ module.exports = class RawTextDisplayParser {
 
   _delete(start, end) {
     const upd = {
-      type: 'clear',
+      type: CLEAR_ID,
       start,
       end
     }
@@ -230,7 +241,7 @@ module.exports = class RawTextDisplayParser {
     }
 
     const upd = {
-      type: 'emoji',
+      type: EMOJI_ID,
       start: this.start,
       end: this.end,
       content: code
@@ -270,7 +281,7 @@ module.exports = class RawTextDisplayParser {
     if (this.word !== link) return false
 
     const upd = {
-      type: 'http-link',
+      type: LINK_ID,
       start: this.start,
       end: this.end,
       content: link,
@@ -287,7 +298,7 @@ module.exports = class RawTextDisplayParser {
     if (this.word !== link) return false
 
     const upd = {
-      type: 'pear-link',
+      type: PEAR_LINK_ID,
       start: this.start,
       end: this.end,
       content: link,
@@ -320,5 +331,3 @@ function isEmoji(word) {
 }
 
 function noop() {}
-
-const MENTION_ID = 1
