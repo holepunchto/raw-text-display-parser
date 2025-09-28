@@ -240,23 +240,22 @@ module.exports = class RawTextDisplayParser {
     return true
   }
 
-  setMention(input, name, id) {
+  setMention(input, name, memberId) {
     if (this.word !== input) return false
 
     const start = this.start
 
     if (input !== name) {
-      const position = this.position
       this.selectRange(this.start, this.end)
       this.appendText(name)
     }
 
     const upd = {
-      type: 'mention',
+      type: 1,
       start,
       end: this.end,
-      content: name,
-      id
+      length: name.length,
+      memberId
     }
 
     this._clearPrevious(upd)
