@@ -67,7 +67,7 @@ module.exports = class RawTextDisplayParser {
     if (this.position === this.text.length) {
       this.text += text
     } else {
-      this._insert(this.position, this.position + text.length, text)
+      this._insert(this.position, this.position, text)
     }
 
     this.position += text.length
@@ -136,7 +136,7 @@ module.exports = class RawTextDisplayParser {
     this._clearPrevious(upd)
     this.text = this.text.slice(0, start) + text + this.text.slice(start)
 
-    const delta = upd.end - upd.start
+    const delta = text.length
 
     for (const d of this.display) {
       if (start < d.start) {
