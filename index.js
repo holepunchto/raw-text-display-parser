@@ -166,7 +166,7 @@ module.exports = class RawTextDisplayParser {
     }
   }
 
-  resync (text) {
+  resync(text) {
     const shared = Math.min(this.text.length, text.length)
     const display = []
 
@@ -230,6 +230,8 @@ module.exports = class RawTextDisplayParser {
   setMention(input, name, id) {
     if (this.word !== input) return false
 
+    const start = this.start
+
     if (input !== name) {
       const position = this.position
       this.selectRange(this.start, this.end)
@@ -238,7 +240,7 @@ module.exports = class RawTextDisplayParser {
 
     const upd = {
       type: 'mention',
-      start: this.start,
+      start,
       end: this.end,
       content: name,
       id
