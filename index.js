@@ -110,7 +110,7 @@ module.exports = class RawTextDisplayParser {
     }
     return {
       text,
-      display
+      display: this.display
     }
   }
 
