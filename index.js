@@ -251,7 +251,7 @@ module.exports = class RawTextDisplayParser {
     }
 
     const upd = {
-      type: 1,
+      type: MENTION_ID,
       start,
       end: this.end,
       length: name.length,
@@ -318,3 +318,5 @@ function isEmoji(word) {
 }
 
 function noop() {}
+
+const MENTION_ID = 1
