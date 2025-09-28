@@ -24,10 +24,12 @@ module.exports = class RawTextDisplayParser {
     this.word = ''
   }
 
-  reset() {
-    this.display = []
-    this.text = ''
-    this.position = 0
+  reset(options = {}) {
+    const { display = [], text = '' } = options
+
+    this.display = display
+    this.text = text
+    this.position = text.length
     this.range = null
   }
 

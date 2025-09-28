@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "format": "prettier --write .",
-    "test": "prettier --check ."
+    "test": "prettier --check . && brittle __test__/**/*.test.js"
   },
   "devDependencies": {
     "brittle": "^3.19.0",
