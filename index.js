@@ -12,7 +12,7 @@ module.exports = class RawTextDisplayParser {
 
     this.display = display
     this.text = text
-    this.position = 0
+    this.position = text.length
     this.range = null
     this.onmention = onmention
     this.onlink = onlink
@@ -24,6 +24,15 @@ module.exports = class RawTextDisplayParser {
     this.word = ''
   }
 
+  reset(options = {}) {
+    const { display = [], text = '' } = options
+
+    this.display = display
+    this.text = text
+    this.position = text.length
+    this.range = null
+  }
+
   _clearPrevious(upd) {
     for (let i = 0; i < this.display.length; i++) {
       const d = this.display[i]
@@ -32,6 +41,12 @@ module.exports = class RawTextDisplayParser {
         i--
       }
     }
+  }
+
+  _insertDisplay(upd) {
+    let i = this.display.length - 1
+    for (; i >= 0 && upd.start <= this.display[i].start; i--) {}
+    this.display.splice(i + 1, 0, upd)
   }
 
   setPosition(position) {
@@ -67,7 +82,7 @@ module.exports = class RawTextDisplayParser {
     if (this.position === this.text.length) {
       this.text += text
     } else {
-      this._insert(this.position, this.position + text.length, text)
+      this._insert(this.position, this.position, text)
     }
 
     this.position += text.length
@@ -97,7 +112,7 @@ module.exports = class RawTextDisplayParser {
     }
     return {
       text,
-      display
+      display: this.display
     }
   }
 
@@ -136,7 +151,7 @@ module.exports = class RawTextDisplayParser {
     this._clearPrevious(upd)
     this.text = this.text.slice(0, start) + text + this.text.slice(start)
 
-    const delta = upd.end - upd.start
+    const delta = text.length
 
     for (const d of this.display) {
       if (start < d.start) {
@@ -166,7 +181,7 @@ module.exports = class RawTextDisplayParser {
     }
   }
 
-  resync (text) {
+  resync(text) {
     const shared = Math.min(this.text.length, text.length)
     const display = []
 
@@ -222,30 +237,31 @@ module.exports = class RawTextDisplayParser {
     }
 
     this._clearPrevious(upd)
-    this.display.push(upd)
+    this._insertDisplay(upd)
 
     return true
   }
 
-  setMention(input, name, id) {
+  setMention(input, name, memberId) {
     if (this.word !== input) return false
 
+    const start = this.start
+
     if (input !== name) {
-      const position = this.position
       this.selectRange(this.start, this.end)
       this.appendText(name)
     }
 
     const upd = {
-      type: 'mention',
-      start: this.start,
+      type: MENTION_ID,
+      start,
       end: this.end,
-      content: name,
-      id
+      length: name.length,
+      memberId
     }
 
     this._clearPrevious(upd)
-    this.display.push(upd)
+    this._insertDisplay(upd)
 
     return true
   }
@@ -262,7 +278,7 @@ module.exports = class RawTextDisplayParser {
     }
 
     this._clearPrevious(upd)
-    this.display.push(upd)
+    this._insertDisplay(upd)
 
     return true
   }
@@ -279,7 +295,7 @@ module.exports = class RawTextDisplayParser {
     }
 
     this._clearPrevious(upd)
-    this.display.push(upd)
+    this._insertDisplay(upd)
 
     return true
   }
@@ -304,3 +320,5 @@ function isEmoji(word) {
 }
 
 function noop() {}
+
+const MENTION_ID = 1
