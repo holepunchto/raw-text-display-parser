@@ -12,7 +12,7 @@ module.exports = class RawTextDisplayParser {
 
     this.display = display
     this.text = text
-    this.position = 0
+    this.position = text.length
     this.range = null
     this.onmention = onmention
     this.onlink = onlink
@@ -22,6 +22,13 @@ module.exports = class RawTextDisplayParser {
     this.start = 0
     this.end = 0
     this.word = ''
+  }
+
+  reset() {
+    this.display = []
+    this.text = ''
+    this.position = 0
+    this.range = null
   }
 
   _clearPrevious(upd) {
