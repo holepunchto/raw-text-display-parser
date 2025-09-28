@@ -8,6 +8,7 @@
     "test": "prettier --check ."
   },
   "devDependencies": {
+    "brittle": "^3.19.0",
     "prettier": "^3.6.2",
     "prettier-config-holepunch": "^1.0.0"
   },
