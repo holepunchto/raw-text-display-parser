@@ -1,6 +1,6 @@
 {
   "name": "raw-text-display-parser",
-  "version": "2.2.2",
+  "version": "2.3.0",
   "description": "Small state machine to parse chat input state when using raw text",
   "main": "index.js",
   "files": [
