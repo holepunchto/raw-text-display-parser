@@ -221,9 +221,9 @@ module.exports = class RawTextDisplayParser {
       if (d.end < end || startOld <= d.start) display.push(d)
     }
 
+    this.position = this.text.length ? startNew : text.length
     this.text = text
     this.display = display
-    this.position = this.text.length
     this.range = null
 
     this.appendText('')
