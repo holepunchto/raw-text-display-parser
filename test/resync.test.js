@@ -186,3 +186,40 @@ test('resync when select a range input and paste a link should keep old display'
     }
   ])
 })
+
+test('resync for append case', function (t) {
+  const display = [
+    {
+      type: 1,
+      start: 0,
+      end: 19,
+      length: 19,
+      memberId: '001'
+    },
+    {
+      type: 1,
+      start: 24,
+      end: 40,
+      length: 16,
+      memberId: '002'
+    }
+  ]
+  const p = new Parser({
+    display,
+    text: '@Silly Water Dragon 123 @Handsome Dragon'
+  })
+
+  p.resync('@Silly Water Dragon 123 @Handsome Dragon ')
+
+  t.alike(p.display, display)
+})
+
+test('resync for remove all text case', function (t) {
+  const p = new Parser({
+    display: [],
+    text: '1'
+  })
+
+  p.resync('')
+  t.is(p.position, 0)
+})
