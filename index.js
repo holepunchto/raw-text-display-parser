@@ -218,7 +218,13 @@ module.exports = class RawTextDisplayParser {
     }
 
     for (const d of this.display) {
-      if (d.end < end || startOld <= d.start) display.push(d)
+      if (d.end < end) display.push(d)
+      if (startOld <= d.start)
+        display.push({
+          ...d,
+          start: d.start + (startNew - startOld),
+          end: d.end + (startNew - startOld)
+        })
     }
 
     this.position = this.text.length ? startNew : text.length
