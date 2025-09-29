@@ -1,6 +1,7 @@
 const test = require('brittle')
 
 const Parser = require('..')
+const { DISPLAY_TYPES } = require('@holepunchto/keet-core-api')
 
 test('resync when paste to empty input', function (t) {
   let params = null
@@ -19,7 +20,7 @@ test('resync when paste to empty input', function (t) {
   p.setLink(link)
   t.alike(p.display, [
     {
-      type: Parser.LINK_ID,
+      type: DISPLAY_TYPES.HTTP_LINK,
       start: 0,
       end: 18,
       content: link,
@@ -48,7 +49,7 @@ test('resync when select the whole input and paste', function (t) {
   p.setPearLink(link)
   t.alike(p.display, [
     {
-      type: Parser.PEAR_LINK_ID,
+      type: DISPLAY_TYPES.PEAR_LINK,
       start: 0,
       end: 15,
       content: link,
@@ -103,7 +104,7 @@ test('resync when select a range input and paste a link', function (t) {
 
   t.alike(p.display, [
     {
-      type: Parser.LINK_ID,
+      type: DISPLAY_TYPES.HTTP_LINK,
       start: 3,
       end: 21,
       content: link,
@@ -126,14 +127,14 @@ test('resync when select a range input and paste a link should keep old display'
 
   t.alike(p.display, [
     {
-      type: Parser.LINK_ID,
+      type: DISPLAY_TYPES.HTTP_LINK,
       start: 0,
       end: 18,
       content: link,
       length: link.length
     },
     {
-      type: Parser.LINK_ID,
+      type: DISPLAY_TYPES.HTTP_LINK,
       start: 23,
       end: 41,
       content: link,
@@ -148,14 +149,14 @@ test('resync when select a range input and paste a link should keep old display'
   t.is(p.position, 27)
   t.alike(p.display, [
     {
-      type: Parser.LINK_ID,
+      type: DISPLAY_TYPES.HTTP_LINK,
       start: 0,
       end: 18,
       content: link,
       length: link.length
     },
     {
-      type: Parser.LINK_ID,
+      type: DISPLAY_TYPES.HTTP_LINK,
       start: 28,
       end: 46,
       content: link,
@@ -170,14 +171,14 @@ test('resync when select a range input and paste a link should keep old display'
   t.is(p.position, 20)
   t.alike(p.display, [
     {
-      type: Parser.LINK_ID,
+      type: DISPLAY_TYPES.HTTP_LINK,
       start: 0,
       end: 18,
       content: link,
       length: link.length
     },
     {
-      type: Parser.LINK_ID,
+      type: DISPLAY_TYPES.HTTP_LINK,
       start: 21,
       end: 39,
       content: link,

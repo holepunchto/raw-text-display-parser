@@ -1,6 +1,7 @@
 const test = require('brittle')
 
 const Parser = require('..')
+const { DISPLAY_TYPES } = require('@holepunchto/keet-core-api')
 
 test('apply two mentions', function (t) {
   const p = new Parser()
@@ -21,14 +22,14 @@ test('apply two mentions', function (t) {
 
   t.alike(p.display, [
     {
-      type: Parser.MENTION_ID,
+      type: DISPLAY_TYPES.MENTION,
       start: 3,
       end: 14,
       length: 11,
       memberId: '001'
     },
     {
-      type: Parser.MENTION_ID,
+      type: DISPLAY_TYPES.MENTION,
       start: 19,
       end: 30,
       length: 11,
@@ -54,14 +55,14 @@ test('apply two mentions, then remove 1st one, then reapply it', function (t) {
 
   t.alike(p.display, [
     {
-      type: Parser.MENTION_ID,
+      type: DISPLAY_TYPES.MENTION,
       start: 3,
       end: 18,
       length: 15,
       memberId: '001'
     },
     {
-      type: Parser.MENTION_ID,
+      type: DISPLAY_TYPES.MENTION,
       start: 23,
       end: 40,
       length: 17,
@@ -78,7 +79,7 @@ test('apply two mentions, then remove 1st one, then reapply it', function (t) {
   t.is(p.text.slice(p.display[0].start, p.display[0].end), '@user2 nameee end')
   t.alike(p.display, [
     {
-      type: Parser.MENTION_ID,
+      type: DISPLAY_TYPES.MENTION,
       start: 21,
       end: 38,
       length: 17,
@@ -98,14 +99,14 @@ test('apply two mentions, then remove 1st one, then reapply it', function (t) {
 
   t.alike(p.display, [
     {
-      type: Parser.MENTION_ID,
+      type: DISPLAY_TYPES.MENTION,
       start: 3,
       end: 18,
       length: 15,
       memberId: '001'
     },
     {
-      type: Parser.MENTION_ID,
+      type: DISPLAY_TYPES.MENTION,
       start: 32,
       end: 49,
       length: 17,
