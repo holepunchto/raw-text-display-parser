@@ -1,4 +1,4 @@
-# raw-text-display-parser
+# @holepunchto/raw-text-display-parser
 
 Small state machine to parse chat input state when using raw text
 
