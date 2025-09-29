@@ -1,8 +1,6 @@
+const { DISPLAY_TYPES } = require('@holepunchto/keet-core-api')
+
 const CLEAR_ID = 0 // just used internally
-const MENTION_ID = 1
-const EMOJI_ID = 7
-const LINK_ID = 2
-const PEAR_LINK_ID = 3
 
 module.exports = class RawTextDisplayParser {
   constructor(options = {}) {
@@ -31,11 +29,6 @@ module.exports = class RawTextDisplayParser {
     this.end = 0
     this.word = ''
   }
-
-  static MENTION_ID = MENTION_ID
-  static EMOJI_ID = EMOJI_ID
-  static LINK_ID = LINK_ID
-  static PEAR_LINK_ID = PEAR_LINK_ID
 
   reset(options = {}) {
     const { display = [], text = '' } = options
@@ -249,7 +242,7 @@ module.exports = class RawTextDisplayParser {
     }
 
     const upd = {
-      type: EMOJI_ID,
+      type: DISPLAY_TYPES.EMOJI,
       start: this.start,
       end: this.end,
       content: code,
@@ -273,7 +266,7 @@ module.exports = class RawTextDisplayParser {
     }
 
     const upd = {
-      type: MENTION_ID,
+      type: DISPLAY_TYPES.MENTION,
       start,
       end: this.end,
       length: name.length,
@@ -290,7 +283,7 @@ module.exports = class RawTextDisplayParser {
     if (this.word !== link) return false
 
     const upd = {
-      type: LINK_ID,
+      type: DISPLAY_TYPES.HTTP_LINK,
       start: this.start,
       end: this.end,
       content: link,
@@ -307,7 +300,7 @@ module.exports = class RawTextDisplayParser {
     if (this.word !== link) return false
 
     const upd = {
-      type: PEAR_LINK_ID,
+      type: DISPLAY_TYPES.PEAR_LINK,
       start: this.start,
       end: this.end,
       content: link,
