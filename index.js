@@ -225,6 +225,8 @@ module.exports = class RawTextDisplayParser {
     this.display = display
     this.position = this.text.length
     this.range = null
+
+    this.appendText('')
   }
 
   setEmoji(input, code, emoji) {
