@@ -2,13 +2,14 @@ const CLEAR_ID = 0 // just used internally
 const MENTION_ID = 1
 const EMOJI_ID = 7
 const LINK_ID = 2
-const PEAR_LINK_ID = 4
+const PEAR_LINK_ID = 3
 
 module.exports = class RawTextDisplayParser {
   constructor(options = {}) {
     const {
       text = '',
       display = [],
+      protocol = 'pear',
       onmention = noop,
       onlink = noop,
       onpearlink = noop,
@@ -18,6 +19,7 @@ module.exports = class RawTextDisplayParser {
 
     this.display = display
     this.text = text
+    this.protocol = protocol
     this.position = text.length
     this.range = null
     this.onmention = onmention
@@ -104,7 +106,7 @@ module.exports = class RawTextDisplayParser {
       this.onmention(this.word)
     } else if (isLink(this.word)) {
       this.onlink(this.word)
-    } else if (isPearLink(this.word)) {
+    } else if (this.isPearLink(this.word)) {
       this.onpearlink(this.word)
     } else if (isEmoji(this.word)) {
       this.onemoji(this.word)
@@ -301,13 +303,17 @@ module.exports = class RawTextDisplayParser {
       start: this.start,
       end: this.end,
       content: link,
-      link
+      length: link.length
     }
 
     this._clearPrevious(upd)
     this._insertDisplay(upd)
 
     return true
+  }
+
+  isPearLink(word) {
+    return word.toLowerCase().startsWith(`${this.protocol}://`)
   }
 }
 
@@ -324,10 +330,6 @@ function isMention(word) {
 function isLink(word) {
   const lwcWord = word.toLowerCase()
   return lwcWord.startsWith('http://') || lwcWord.startsWith('https://')
-}
-
-function isPearLink(word) {
-  return word.toLowerCase().startsWith('pear://')
 }
 
 function isEmoji(word) {
