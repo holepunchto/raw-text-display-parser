@@ -210,7 +210,7 @@ test('resync for append case', function (t) {
   })
 
   p.resync('@Silly Water Dragon 123 @Handsome Dragon ')
-
+  t.is(p.position, 41)
   t.alike(p.display, display)
 })
 
