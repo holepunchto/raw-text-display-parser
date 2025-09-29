@@ -1,14 +1,15 @@
 const CLEAR_ID = 0 // just used internally
 const MENTION_ID = 1
-const EMOJI_ID = 2
-const LINK_ID = 3
-const PEAR_LINK_ID = 4
+const EMOJI_ID = 7
+const LINK_ID = 2
+const PEAR_LINK_ID = 3
 
 module.exports = class RawTextDisplayParser {
   constructor(options = {}) {
     const {
       text = '',
       display = [],
+      protocol = 'pear',
       onmention = noop,
       onlink = noop,
       onpearlink = noop,
@@ -18,6 +19,7 @@ module.exports = class RawTextDisplayParser {
 
     this.display = display
     this.text = text
+    this.protocol = protocol
     this.position = text.length
     this.range = null
     this.onmention = onmention
@@ -100,11 +102,11 @@ module.exports = class RawTextDisplayParser {
 
     this._updateWord()
 
-    if (this.word[0] === '@') {
+    if (isMention(this.word)) {
       this.onmention(this.word)
     } else if (isLink(this.word)) {
       this.onlink(this.word)
-    } else if (isPearLink(this.word)) {
+    } else if (this.isPearLink(this.word)) {
       this.onpearlink(this.word)
     } else if (isEmoji(this.word)) {
       this.onemoji(this.word)
@@ -216,26 +218,32 @@ module.exports = class RawTextDisplayParser {
     }
 
     for (const d of this.display) {
-      if (d.end < end || startOld <= d.start) display.push(d)
+      if (d.end < end) display.push(d)
+      if (startOld <= d.start)
+        display.push({
+          ...d,
+          start: d.start + (startNew - startOld),
+          end: d.end + (startNew - startOld)
+        })
     }
 
+    this.position = this.text.length ? startNew : text.length
     this.text = text
     this.display = display
-    this.position = this.text.length
     this.range = null
+
+    this.appendText('')
   }
 
   setEmoji(input, code, emoji) {
     if (this.word !== input) return false
 
     if (emoji) {
-      const position = this.position
       this.selectRange(this.start, this.end)
       this.appendText(emoji)
     }
 
     if (input !== code) {
-      const position = this.position
       this.selectRange(this.start, this.end)
       this.appendText(code)
     }
@@ -244,7 +252,8 @@ module.exports = class RawTextDisplayParser {
       type: EMOJI_ID,
       start: this.start,
       end: this.end,
-      content: code
+      content: code,
+      length: code.length
     }
 
     this._clearPrevious(upd)
@@ -285,7 +294,7 @@ module.exports = class RawTextDisplayParser {
       start: this.start,
       end: this.end,
       content: link,
-      link
+      length: link.length
     }
 
     this._clearPrevious(upd)
@@ -302,13 +311,17 @@ module.exports = class RawTextDisplayParser {
       start: this.start,
       end: this.end,
       content: link,
-      link
+      length: link.length
     }
 
     this._clearPrevious(upd)
     this._insertDisplay(upd)
 
     return true
+  }
+
+  isPearLink(word) {
+    return word.toLowerCase().startsWith(`${this.protocol}://`)
   }
 }
 
@@ -318,12 +331,13 @@ function overlaps(a, b) {
   return false
 }
 
-function isLink(word) {
-  return word.startsWith('http://') || word.startsWith('https://')
+function isMention(word) {
+  return word[0] === '@'
 }
 
-function isPearLink(word) {
-  return word.startsWith('pear://')
+function isLink(word) {
+  word = word.toLowerCase()
+  return word.startsWith('http://') || word.startsWith('https://')
 }
 
 function isEmoji(word) {
