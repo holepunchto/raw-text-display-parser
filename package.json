@@ -10,6 +10,9 @@
     "format": "prettier --write .",
     "test": "prettier --check . && brittle test/*.test.js"
   },
+  "dependencies": {
+    "@holepunchto/keet-core-api": "^2.11.0"
+  },
   "devDependencies": {
     "brittle": "^3.19.0",
     "prettier": "^3.6.2",
