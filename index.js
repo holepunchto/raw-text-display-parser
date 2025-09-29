@@ -1,7 +1,7 @@
 const CLEAR_ID = 0 // just used internally
 const MENTION_ID = 1
 const EMOJI_ID = 7
-const LINK_ID = 3
+const LINK_ID = 2
 const PEAR_LINK_ID = 4
 
 module.exports = class RawTextDisplayParser {
@@ -100,7 +100,7 @@ module.exports = class RawTextDisplayParser {
 
     this._updateWord()
 
-    if (this.word[0] === '@') {
+    if (isMention(this.word)) {
       this.onmention(this.word)
     } else if (isLink(this.word)) {
       this.onlink(this.word)
@@ -284,7 +284,7 @@ module.exports = class RawTextDisplayParser {
       start: this.start,
       end: this.end,
       content: link,
-      link
+      length: link.length
     }
 
     this._clearPrevious(upd)
@@ -317,12 +317,17 @@ function overlaps(a, b) {
   return false
 }
 
+function isMention(word) {
+  return word[0] === '@'
+}
+
 function isLink(word) {
-  return word.startsWith('http://') || word.startsWith('https://')
+  const lwcWord = word.toLowerCase()
+  return lwcWord.startsWith('http://') || lwcWord.startsWith('https://')
 }
 
 function isPearLink(word) {
-  return word.startsWith('pear://')
+  return word.toLowerCase().startsWith('pear://')
 }
 
 function isEmoji(word) {
