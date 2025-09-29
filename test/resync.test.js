@@ -163,7 +163,7 @@ test('resync when select a range input and paste a link should keep old display'
     }
   ])
 
-  // select the range 19-28 and paste 'xxxxxxxx'
+  // select the range 19-28 and paste 'a'
   p.selectRange(19, 23)
   p.resync(`${link} a ${link}`)
 

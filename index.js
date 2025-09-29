@@ -336,8 +336,8 @@ function isMention(word) {
 }
 
 function isLink(word) {
-  const lwcWord = word.toLowerCase()
-  return lwcWord.startsWith('http://') || lwcWord.startsWith('https://')
+  word = word.toLowerCase()
+  return word.startsWith('http://') || word.startsWith('https://')
 }
 
 function isEmoji(word) {
