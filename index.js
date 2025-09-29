@@ -1,6 +1,6 @@
 const CLEAR_ID = 0 // just used internally
 const MENTION_ID = 1
-const EMOJI_ID = 2
+const EMOJI_ID = 7
 const LINK_ID = 3
 const PEAR_LINK_ID = 4
 
@@ -229,13 +229,11 @@ module.exports = class RawTextDisplayParser {
     if (this.word !== input) return false
 
     if (emoji) {
-      const position = this.position
       this.selectRange(this.start, this.end)
       this.appendText(emoji)
     }
 
     if (input !== code) {
-      const position = this.position
       this.selectRange(this.start, this.end)
       this.appendText(code)
     }
@@ -244,7 +242,8 @@ module.exports = class RawTextDisplayParser {
       type: EMOJI_ID,
       start: this.start,
       end: this.end,
-      content: code
+      content: code,
+      length: code.length
     }
 
     this._clearPrevious(upd)
