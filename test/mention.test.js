@@ -5,20 +5,28 @@ const { DISPLAY_TYPES } = require('@holepunchto/keet-core-api')
 
 test('appendText for @user', (t) => {
   const p = new Parser()
-  p.appendText('@alice')
-  t.is(p.text, 'alice')
+
+  p.appendText('@alice0')
+
+  const user1Name = '@alice name'
+  p.setMention('@alice0', user1Name, '001')
+  t.is(p.text, '@alice name')
 })
 
-test('appendText for @user with extra blank', (t) => {
+test('appendText for @user with after blank', (t) => {
   const p = new Parser()
   p.appendText('@alice ')
-  t.is(p.text, 'alice ')
+  const user1Name = '@alice name'
+  p.setMention('@alice1', user1Name, '001')
+  t.is(p.text, '@alice ')
+})
 
-  p.appendText(' @alice')
-  t.is(p.text, ' alice')
-
+test('appendText for @user with before and after blank', (t) => {
+  const p = new Parser()
   p.appendText(' @alice ')
-  t.is(p.text, ' alice ')
+  const user1Name = '@alice name'
+  p.setMention('@alice2', user1Name, '001')
+  t.is(p.text, ' @alice ')
 })
 
 test('apply two mentions', function (t) {
