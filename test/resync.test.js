@@ -79,8 +79,6 @@ test('resync when select a range input and paste', function (t) {
   p.resync('12 xxx 1234')
   t.is(p.position, 6)
   t.is(p.text, '12 xxx 1234')
-
-  console.log(p)
 })
 
 test('resync when select a range input and paste a link', function (t) {
