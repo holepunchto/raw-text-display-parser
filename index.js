@@ -330,7 +330,11 @@ function isMention(word) {
 
 function isLink(word) {
   word = word.toLowerCase()
-  return word.startsWith('http://') || word.startsWith('https://')
+  return (
+    word.startsWith('http://') ||
+    word.startsWith('https://') ||
+    word.startsWith('www.')
+  )
 }
 
 function isEmoji(word) {
