@@ -279,8 +279,13 @@ module.exports = class RawTextDisplayParser {
     return true
   }
 
-  setLink(link) {
-    if (this.word !== link) return false
+  setLink(input, link) {
+    if (this.word !== input) return false
+
+    if (input !== link) {
+      this.selectRange(this.start, this.end)
+      this.appendText(link)
+    }
 
     const upd = {
       type: DISPLAY_TYPES.HTTP_LINK,

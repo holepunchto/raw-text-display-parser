@@ -24,7 +24,7 @@
       const p = new Parser({
         onlink(link) {
           console.log('got http link', link)
-          if (p.setLink(link)) {
+          if (p.setLink(link, link)) {
             inp.value = p.text
             inp.selectionStart = p.position
             inp.selectionEnd = p.position
