@@ -3,6 +3,24 @@ const test = require('brittle')
 const Parser = require('..')
 const { DISPLAY_TYPES } = require('@holepunchto/keet-core-api')
 
+test('appendText for @user', (t) => {
+  const p = new Parser()
+  p.appendText('@alice')
+  t.is(p.text, 'alice')
+})
+
+test('appendText for @user with extra blank', (t) => {
+  const p = new Parser()
+  p.appendText('@alice ')
+  t.is(p.text, 'alice ')
+
+  p.appendText(' @alice')
+  t.is(p.text, ' alice')
+
+  p.appendText(' @alice ')
+  t.is(p.text, ' alice ')
+})
+
 test('apply two mentions', function (t) {
   const p = new Parser()
 
