@@ -58,7 +58,7 @@ test('mention', (t) => {
   ])
 })
 
-test.skip('emoji', (t) => {
+test('emoji', (t) => {
   const text = ':pear:'
   const emojis = { ':pear:': '🍐' }
 
