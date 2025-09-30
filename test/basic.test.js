@@ -7,7 +7,7 @@ const { HTTP_LINK, PEAR_LINK, MENTION, EMOJI } = DISPLAY_TYPES
 test('httpLink', (t) => {
   const text = 'https://keet.io'
 
-  const p = new Parser({ onlink: (link) => p.setLink(link) })
+  const p = new Parser({ onlink: (link) => p.setLink(link, link) })
   p.appendText(text)
 
   t.alike(p.display, [
