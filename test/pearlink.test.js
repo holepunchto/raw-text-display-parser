@@ -1,16 +1,21 @@
 const test = require('brittle')
+
 const Parser = require('..')
+const { DISPLAY_TYPES } = require('@holepunchto/keet-core-api')
 
 test('setPearLink creates pear-link display entry', (t) => {
   const p = new Parser()
-  p.appendText('pear://example')
-  const success = p.setPearLink('pear://example')
+  const pearlink = 'pear://example'
+  p.appendText(pearlink)
+  const success = p.setPearLink(pearlink)
   t.pass(success)
-  t.is(p.display, {
-    type: 'pear-link',
-    start: 0,
-    end: 14,
-    content: 'pear://example',
-    link: 'pear://example'
-  })
+  t.alike(p.display, [
+    {
+      type: DISPLAY_TYPES.PEAR_LINK,
+      start: 0,
+      end: 14,
+      content: pearlink,
+      length: 14
+    }
+  ])
 })
