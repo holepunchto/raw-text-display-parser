@@ -77,3 +77,23 @@ test('emoji', (t) => {
     }
   ])
 })
+
+test('emoji not found', (t) => {
+  const text = ':pear:'
+  const emojis = {}
+
+  const p = new Parser({
+    onemoji: (emoji) => p.setEmoji(emoji, emoji, emojis[emoji])
+  })
+  p.appendText(text)
+
+  t.alike(p.display, [
+    {
+      type: EMOJI,
+      start: 0,
+      end: 6,
+      content: 'pear',
+      length: 6
+    }
+  ])
+})
