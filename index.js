@@ -245,8 +245,8 @@ module.exports = class RawTextDisplayParser {
       type: DISPLAY_TYPES.EMOJI,
       start: this.start,
       end: this.end,
-      content: code,
-      length: code.length
+      content: code.slice(1, -1),
+      length: emoji ? emoji.length : code.length
     }
 
     this._clearPrevious(upd)
