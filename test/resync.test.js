@@ -17,7 +17,7 @@ test('resync when paste to empty input', function (t) {
   t.is(p.text, link)
   t.is(p.position, 18)
 
-  p.setLink(link)
+  p.setLink(link, link)
   t.alike(p.display, [
     {
       type: DISPLAY_TYPES.HTTP_LINK,
@@ -79,8 +79,6 @@ test('resync when select a range input and paste', function (t) {
   p.resync('12 xxx 1234')
   t.is(p.position, 6)
   t.is(p.text, '12 xxx 1234')
-
-  console.log(p)
 })
 
 test('resync when select a range input and paste a link', function (t) {
@@ -100,7 +98,7 @@ test('resync when select a range input and paste a link', function (t) {
   t.is(p.position, 21)
   t.is(p.text, `12 ${link} 1234`)
   t.is(params, link)
-  p.setLink(link)
+  p.setLink(link, link)
 
   t.alike(p.display, [
     {
@@ -119,11 +117,11 @@ test('resync when select a range input and paste a link should keep old display'
   const link = 'http://example.com'
   p.appendText(link)
   t.is(p.text, link)
-  p.setLink(link)
+  p.setLink(link, link)
   p.appendText(' 123 ')
   p.appendText(link)
   t.is(p.text, `${link} 123 ${link}`)
-  p.setLink(link)
+  p.setLink(link, link)
 
   t.alike(p.display, [
     {
