@@ -160,7 +160,7 @@ module.exports = class RawTextDisplayParser {
     const delta = text.length
 
     for (const d of this.display) {
-      if (start < d.start) {
+      if (start <= d.start) {
         d.start += delta
         d.end += delta
       }
@@ -231,6 +231,8 @@ module.exports = class RawTextDisplayParser {
   setEmoji(input, code, emoji) {
     if (this.word !== input) return false
 
+    const start = this.start
+
     if (emoji) {
       this.selectRange(this.start, this.end)
       this.appendText(emoji)
@@ -239,14 +241,16 @@ module.exports = class RawTextDisplayParser {
     if (input !== code) {
       this.selectRange(this.start, this.end)
       this.appendText(code)
+      this.appendText(' ') // add trailing space
     }
 
+    const length = emoji ? emoji.length : code.length
     const upd = {
       type: DISPLAY_TYPES.EMOJI,
-      start: this.start,
-      end: this.end,
+      start,
+      end: start + length,
       content: code.slice(1, -1),
-      length: emoji ? emoji.length : code.length
+      length
     }
 
     this._clearPrevious(upd)
@@ -263,12 +267,13 @@ module.exports = class RawTextDisplayParser {
     if (input !== name) {
       this.selectRange(this.start, this.end)
       this.appendText(name)
+      this.appendText(' ') // add trailing space
     }
 
     const upd = {
       type: DISPLAY_TYPES.MENTION,
       start,
-      end: this.end,
+      end: start + name.length,
       length: name.length,
       memberId
     }
@@ -319,8 +324,8 @@ module.exports = class RawTextDisplayParser {
 }
 
 function overlaps(a, b) {
-  if (a.start <= b.start && b.start < a.end) return true
-  if (b.start <= a.start && a.start < b.end) return true
+  if (a.start < b.start && b.start < a.end) return true
+  if (b.start < a.start && a.start < b.end) return true
   return false
 }
 
