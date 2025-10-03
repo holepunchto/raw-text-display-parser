@@ -3,34 +3,6 @@ const test = require('brittle')
 const Parser = require('..')
 const { DISPLAY_TYPES } = require('@holepunchto/keet-core-api')
 
-test('setEmoji replaces shortcode with emoji', (t) => {
-  const p = new Parser()
-
-  p.appendText(':smile:')
-  const success = p.setEmoji(':smile:', ':smile:', '😄')
-
-  t.ok(success)
-  t.is(p.text, '😄')
-  t.alike(p.display, [
-    {
-      type: DISPLAY_TYPES.EMOJI,
-      start: 0,
-      end: 2,
-      content: 'smile',
-      length: 2
-    }
-  ])
-})
-
-test('setEmoji returns false if shortcode not found', (t) => {
-  const p = new Parser()
-
-  p.appendText(':smile:')
-  const success = p.setEmoji(':wave:', ':wave:')
-
-  t.not(success)
-})
-
 test('setEmoji normally', (t) => {
   const p = new Parser()
 
@@ -76,6 +48,34 @@ test('setEmoji normally', (t) => {
   ])
 })
 
+test('setEmoji replaces shortcode with emoji', (t) => {
+  const p = new Parser()
+
+  p.appendText(':smile:')
+  const success = p.setEmoji(':smile:', ':smile:', '😄')
+
+  t.ok(success)
+  t.is(p.text, '😄')
+  t.alike(p.display, [
+    {
+      type: DISPLAY_TYPES.EMOJI,
+      start: 0,
+      end: 2,
+      content: 'smile',
+      length: 2
+    }
+  ])
+})
+
+test('setEmoji returns false if shortcode not found', (t) => {
+  const p = new Parser()
+
+  p.appendText(':smile:')
+  const success = p.setEmoji(':wave:', ':wave:')
+
+  t.not(success)
+})
+
 test('apply emoji space check', function (t) {
   let emojiCalled = 0
   let lastWord = ''
@@ -111,4 +111,28 @@ test('apply emoji space check', function (t) {
   p.appendText('awesome')
   t.is(p.text, ':keet_party: awesome')
   t.is(p.display.length, 1)
+})
+
+test('setEmoji normally then remove it', (t) => {
+  const p = new Parser()
+
+  p.appendText(':smi')
+  const success1 = p.setEmoji(':smi', ':smile:')
+
+  t.ok(success1)
+  t.is(p.text, ':smile: ')
+  t.alike(p.display, [
+    {
+      type: DISPLAY_TYPES.EMOJI,
+      start: 0,
+      end: 7,
+      content: 'smile',
+      length: 7
+    }
+  ])
+
+  p.setPosition(1)
+  p.appendText('x')
+
+  t.is(p.display.length, 0)
 })
