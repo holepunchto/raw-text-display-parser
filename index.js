@@ -1,7 +1,5 @@
 const { DISPLAY_TYPES } = require('@holepunchto/keet-core-api')
 
-const CLEAR_ID = 0 // just used internally
-
 module.exports = class RawTextDisplayParser {
   constructor(options = {}) {
     const {
@@ -39,10 +37,13 @@ module.exports = class RawTextDisplayParser {
     this.range = null
   }
 
-  _clearPrevious(upd) {
+  _clearPrevious(start, end) {
+    // if empty, nothing to clear
+    if (start === end) return
+
     for (let i = 0; i < this.display.length; i++) {
       const d = this.display[i]
-      if (overlaps(d, upd)) {
+      if (overlaps(d, start, end)) {
         this.display.splice(i, 1)
         i--
       }
@@ -148,13 +149,7 @@ module.exports = class RawTextDisplayParser {
   }
 
   _insert(start, end, text) {
-    const upd = {
-      type: CLEAR_ID,
-      start,
-      end
-    }
-
-    this._clearPrevious(upd)
+    this._clearPrevious(start, end)
     this.text = this.text.slice(0, start) + text + this.text.slice(start)
 
     const delta = text.length
@@ -168,13 +163,7 @@ module.exports = class RawTextDisplayParser {
   }
 
   _delete(start, end) {
-    const upd = {
-      type: CLEAR_ID,
-      start,
-      end
-    }
-
-    this._clearPrevious(upd)
+    this._clearPrevious(start, end)
     this.text = this.text.slice(0, start) + this.text.slice(end)
 
     const delta = end - start
@@ -252,7 +241,7 @@ module.exports = class RawTextDisplayParser {
       length
     }
 
-    this._clearPrevious(upd)
+    this._clearPrevious(upd.start, upd.end)
     this._insertDisplay(upd)
 
     return true
@@ -276,7 +265,7 @@ module.exports = class RawTextDisplayParser {
       memberId
     }
 
-    this._clearPrevious(upd)
+    this._clearPrevious(upd.start, upd.end)
     this._insertDisplay(upd)
 
     return true
@@ -293,7 +282,7 @@ module.exports = class RawTextDisplayParser {
       length: input.length
     }
 
-    this._clearPrevious(upd)
+    this._clearPrevious(upd.start, upd.end)
     this._insertDisplay(upd)
 
     return true
@@ -310,7 +299,7 @@ module.exports = class RawTextDisplayParser {
       length: link.length
     }
 
-    this._clearPrevious(upd)
+    this._clearPrevious(upd.start, upd.end)
     this._insertDisplay(upd)
 
     return true
@@ -321,9 +310,9 @@ module.exports = class RawTextDisplayParser {
   }
 }
 
-function overlaps(a, b) {
-  if (a.start < b.start && b.start < a.end) return true
-  if (b.start < a.start && a.start < b.end) return true
+function overlaps(a, start, end) {
+  if (a.start < start && start < a.end) return true
+  if (start < a.start && a.start < end) return true
   return false
 }
 
