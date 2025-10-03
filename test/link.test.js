@@ -7,7 +7,7 @@ test('setLink creates http-link display entry', (t) => {
   const p = new Parser()
   const link = 'http://example.com'
   p.appendText(link)
-  p.setLink(link)
+  p.setLink(link, link)
   t.alike(p.display, [
     {
       type: DISPLAY_TYPES.HTTP_LINK,
