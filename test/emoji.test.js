@@ -113,7 +113,7 @@ test('apply emoji space check', function (t) {
   t.is(p.display.length, 1)
 })
 
-test('setEmoji normally then remove it', (t) => {
+test('setEmoji normally then type in middle to remove it', (t) => {
   const p = new Parser()
 
   p.appendText(':smi')
@@ -134,5 +134,40 @@ test('setEmoji normally then remove it', (t) => {
   p.setPosition(1)
   p.appendText('x')
 
+  t.is(p.text, ':xsmile: ')
   t.is(p.display.length, 0)
+})
+
+test('setEmoji normally then type outside not remove it', (t) => {
+  const p = new Parser()
+
+  p.appendText('x :smi')
+  const success1 = p.setEmoji(':smi', ':smile:')
+
+  t.ok(success1)
+  t.is(p.text, 'x :smile: ')
+  t.alike(p.display, [
+    {
+      type: DISPLAY_TYPES.EMOJI,
+      start: 2,
+      end: 9,
+      content: 'smile',
+      length: 7
+    }
+  ])
+
+  p.setPosition(2)
+  p.backspace()
+  p.backspace()
+
+  t.is(p.text, ':smile: ')
+  t.alike(p.display, [
+    {
+      type: DISPLAY_TYPES.EMOJI,
+      start: 0,
+      end: 7,
+      content: 'smile',
+      length: 7
+    }
+  ])
 })
