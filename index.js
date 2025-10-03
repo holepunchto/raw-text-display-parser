@@ -311,8 +311,8 @@ module.exports = class RawTextDisplayParser {
 }
 
 function overlaps(a, start, end) {
-  if (a.start < start && start < a.end) return true
-  if (start < a.start && a.start < end) return true
+  if (a.start <= start && start < a.end) return true
+  if (start <= a.start && a.start < end) return true
   return false
 }
 
