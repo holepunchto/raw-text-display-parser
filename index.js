@@ -88,8 +88,8 @@ module.exports = class RawTextDisplayParser {
 
     if (this.position === this.text.length) {
       this.text += text
-    } else {
-      this._insert(this.position, this.position, text)
+    } else if (text.length) {
+      this._insert(this.position, text)
     }
 
     this.position += text.length
@@ -148,14 +148,21 @@ module.exports = class RawTextDisplayParser {
     this.end = end
   }
 
-  _insert(start, end, text) {
-    this._clearPrevious(start, end)
-    this.text = this.text.slice(0, start) + text + this.text.slice(start)
+  _insert(position, text) {
+    this.text = this.text.slice(0, position) + text + this.text.slice(position)
+
+    for (let i = 0; i < this.display.length; i++) {
+      const d = this.display[i]
+      if (d.start < position && position < d.end) {
+        this.display.splice(i, 1)
+        i--
+      }
+    }
 
     const delta = text.length
 
     for (const d of this.display) {
-      if (start <= d.start) {
+      if (position <= d.start) {
         d.start += delta
         d.end += delta
       }
