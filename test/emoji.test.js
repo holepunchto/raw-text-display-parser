@@ -93,8 +93,8 @@ test('apply emoji space check', function (t) {
   t.is(lastWord, ':keet')
 
   p.setEmoji(':keet', ':keet_party:')
-  t.is(emojiCalled, 2)
-  t.is(lastWord, ':keet_party:')
+  t.is(emojiCalled, 1)
+  t.is(lastWord, ':keet')
   t.is(clearCalled, 1)
 
   t.is(p.text, ':keet_party: ')

@@ -132,8 +132,8 @@ test('apply mention without space', function (t) {
   t.is(lastWord, '@u')
 
   p.setMention('@u', '@user', '1')
-  t.is(mentionCalled, 2)
-  t.is(lastWord, '@user')
+  t.is(mentionCalled, 1)
+  t.is(lastWord, '@u')
   t.is(clearCalled, 1)
 
   t.is(p.text, '@user ')

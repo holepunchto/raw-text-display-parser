@@ -240,8 +240,7 @@ module.exports = class RawTextDisplayParser {
 
     if (input !== code) {
       this.selectRange(this.start, this.end)
-      this.appendText(code)
-      this.appendText(' ') // add trailing space
+      this.appendText(`${code} `) // add trailing space
     }
 
     const length = emoji ? emoji.length : code.length
@@ -266,8 +265,7 @@ module.exports = class RawTextDisplayParser {
 
     if (input !== name) {
       this.selectRange(this.start, this.end)
-      this.appendText(name)
-      this.appendText(' ') // add trailing space
+      this.appendText(`${name} `) // add trailing space
     }
 
     const upd = {
