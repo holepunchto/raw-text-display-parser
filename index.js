@@ -59,11 +59,15 @@ module.exports = class RawTextDisplayParser {
   setPosition(position) {
     this.position = position
     this.range = null
+
+    this._updateWord()
   }
 
   selectRange(start, end) {
     this.position = start
     this.range = { start, end }
+
+    this._updateWord()
   }
 
   backspace() {

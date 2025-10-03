@@ -193,3 +193,63 @@ test('setMention returns false if current word does not match', (t) => {
   t.not(success)
   t.is(p.display.length, 0)
 })
+
+test('setMention 1st time then go to start setMention 2nd time', (t) => {
+  let mentionCalled = 0
+  let lastWord = ''
+  const p = new Parser({
+    onmention: (mention) => {
+      mentionCalled++
+      lastWord = mention
+    }
+  })
+
+  p.appendText('@ni')
+  t.is(mentionCalled, 1)
+  t.is(lastWord, '@ni')
+
+  const success1 = p.setMention('@ni', '@nice', '1')
+  t.ok(success1)
+  t.is(p.text, '@nice ')
+  t.is(p.text.slice(p.display[0].start, p.display[0].end), '@nice')
+  t.alike(p.display, [
+    {
+      type: DISPLAY_TYPES.MENTION,
+      start: 0,
+      end: 5,
+      length: 5,
+      memberId: '1'
+    }
+  ])
+
+  p.setPosition(0)
+  p.appendText(' ')
+  t.is(mentionCalled, 2)
+  t.is(lastWord, '@nice')
+
+  p.setPosition(0)
+  p.appendText('@')
+  t.is(mentionCalled, 3)
+  t.is(lastWord, '@')
+
+  const success2 = p.setMention('@', '@nice', '2')
+  t.ok(success2)
+  t.is(p.text, '@nice  @nice ')
+  t.is(p.text.slice(p.display[0].start, p.display[0].end), '@nice')
+  t.alike(p.display, [
+    {
+      type: DISPLAY_TYPES.MENTION,
+      start: 0,
+      end: 5,
+      length: 5,
+      memberId: '2'
+    },
+    {
+      type: DISPLAY_TYPES.MENTION,
+      start: 7,
+      end: 12,
+      length: 5,
+      memberId: '1'
+    }
+  ])
+})
