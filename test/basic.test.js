@@ -97,3 +97,25 @@ test('emoji not found', (t) => {
     }
   ])
 })
+
+test('flush', (t) => {
+  const text = 'http://keet.io'
+  const p = new Parser({ onlink: (link) => p.setLink(link, link) })
+  p.appendText(text)
+
+  t.is(p.text, text)
+  t.alike(p.display, [
+    {
+      type: HTTP_LINK,
+      start: 0,
+      end: 14,
+      content: 'http://keet.io',
+      length: 14
+    }
+  ])
+
+  const data = p.flush('')
+
+  t.is(data.text, '')
+  t.is(data.display.length, 0)
+})
