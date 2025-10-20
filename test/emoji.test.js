@@ -52,16 +52,16 @@ test('setEmoji replaces shortcode with emoji', (t) => {
   const p = new Parser()
 
   p.appendText(':smile:')
-  const success = p.setEmoji(':smile:', ':smile:', '😄')
+  const success = p.setEmoji(':smile:', '😄', '😄')
 
   t.ok(success)
-  t.is(p.text, '😄')
+  t.is(p.text, '😄 ')
   t.alike(p.display, [
     {
       type: DISPLAY_TYPES.EMOJI,
       start: 0,
       end: 2,
-      content: 'smile',
+      content: '😄',
       length: 2
     }
   ])
