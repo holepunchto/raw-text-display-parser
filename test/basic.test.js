@@ -72,7 +72,7 @@ test('emoji', (t) => {
       type: EMOJI,
       start: 0,
       end: 2,
-      content: 'pear',
+      content: '🍐',
       length: 2
     }
   ])
