@@ -64,7 +64,7 @@ test('setEmoji custom emoji - use shortcode for display and udp content, will no
       type: DISPLAY_TYPES.EMOJI,
       start: 0,
       end: 12,
-      content: shortcode.slice(1, -1),
+      content: 'keet_smile',
       length: 12
     }
   ])
