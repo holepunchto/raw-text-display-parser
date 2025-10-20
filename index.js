@@ -236,20 +236,17 @@ module.exports = class RawTextDisplayParser {
     if (emoji) {
       this.selectRange(this.start, this.end)
       this.appendText(emoji)
-    }
-
-    if (input !== code) {
+    } else if (input !== code) {
       this.selectRange(this.start, this.end)
       this.appendText(`${code} `) // add trailing space
     }
 
     const length = emoji ? emoji.length : code.length
-    const content = emoji ? emoji : code.slice(1, -1)
     const upd = {
       type: DISPLAY_TYPES.EMOJI,
       start,
       end: start + length,
-      content,
+      content: code.slice(1, -1),
       length
     }
 
