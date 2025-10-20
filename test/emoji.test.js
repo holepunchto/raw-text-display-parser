@@ -48,21 +48,69 @@ test('setEmoji normally', (t) => {
   ])
 })
 
-test('setEmoji replaces shortcode with emoji', (t) => {
+test('setEmoji custom emoji - use shortcode for display and udp content, will not have emoji', (t) => {
   const p = new Parser()
 
-  p.appendText(':smile:')
-  const success = p.setEmoji(':smile:', '😄', '😄')
+  const input = ':keet_smile:'
+  const shortcode = ':keet_smile:'
+  const emoji = undefined
+  p.appendText(input)
+  const success = p.setEmoji(input, shortcode, emoji)
 
   t.ok(success)
-  t.is(p.text, '😄 ')
+  t.is(p.text, shortcode)
+  t.alike(p.display, [
+    {
+      type: DISPLAY_TYPES.EMOJI,
+      start: 0,
+      end: 12,
+      content: shortcode.slice(1, -1),
+      length: 12
+    }
+  ])
+})
+
+test('setEmoji unicode emoji - will use emoji value for display text and udp content', (t) => {
+  const p = new Parser()
+
+  const input = ':pear:'
+  const shortcode = '🍐'
+  const emoji = '🍐'
+  p.appendText(input)
+  const success = p.setEmoji(input, shortcode, emoji)
+
+  t.ok(success)
+  t.is(p.text, `${shortcode} `)
   t.alike(p.display, [
     {
       type: DISPLAY_TYPES.EMOJI,
       start: 0,
       end: 2,
-      content: '😄',
+      content: '🍐',
       length: 2
+    }
+  ])
+})
+
+test('setEmoji if emoji is provided, will use its value regardless if string or emoji', (t) => {
+  const p = new Parser()
+
+  const input = ':pear:'
+  const shortcode = '🍐'
+  // Emoji field should always be an emoji, but since it is part of string so we're able to handle normal string as well
+  const emoji = 'pear'
+  p.appendText(input)
+  const success = p.setEmoji(input, shortcode, emoji)
+
+  t.ok(success)
+  t.is(p.text, `${shortcode} `)
+  t.alike(p.display, [
+    {
+      type: DISPLAY_TYPES.EMOJI,
+      start: 0,
+      end: 4,
+      content: 'pear',
+      length: 4
     }
   ])
 })
