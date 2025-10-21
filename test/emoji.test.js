@@ -48,7 +48,7 @@ test('setEmoji normally', (t) => {
   ])
 })
 
-test('setEmoji displays emoji over shortcode and content will always be shortcode', (t) => {
+test('setEmoji replaces shortcode with emoji', (t) => {
   const p = new Parser()
 
   p.appendText(':smile:')
@@ -56,6 +56,25 @@ test('setEmoji displays emoji over shortcode and content will always be shortcod
 
   t.ok(success)
   t.is(p.text, '😄')
+  t.alike(p.display, [
+    {
+      type: DISPLAY_TYPES.EMOJI,
+      start: 0,
+      end: 2,
+      content: 'smile',
+      length: 2
+    }
+  ])
+})
+
+test("provided both shortcode and emoji,setEmoji will use emoji for text displaying, and use shortcode for display type's content", (t) => {
+  const p = new Parser()
+
+  p.appendText(':smile:')
+  const success = p.setEmoji(':smile:', ':smile:', '😄')
+
+  t.ok(success)
+  t.is(p.text, '😄') // text is chatinput text, will show user emoji over shortcode
   t.alike(p.display, [
     {
       type: DISPLAY_TYPES.EMOJI,
