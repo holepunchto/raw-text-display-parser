@@ -35,6 +35,8 @@ module.exports = class RawTextDisplayParser {
     this.text = text
     this.position = text.length
     this.range = null
+
+    this.appendText('')
   }
 
   _clearPrevious(start, end) {
