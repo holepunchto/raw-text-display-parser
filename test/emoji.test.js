@@ -67,6 +67,25 @@ test('setEmoji replaces shortcode with emoji', (t) => {
   ])
 })
 
+test('setEmoji should prioritise emoji over input !== code', (t) => {
+  const p = new Parser()
+
+  p.appendText(':smil')
+  const success = p.setEmoji(':smil', ':smile:', '😄')
+
+  t.ok(success)
+  t.is(p.text, '😄')
+  t.alike(p.display, [
+    {
+      type: DISPLAY_TYPES.EMOJI,
+      start: 0,
+      end: 2,
+      content: 'smile',
+      length: 2
+    }
+  ])
+})
+
 test("provided both shortcode and emoji,setEmoji will use emoji for text displaying, and use shortcode for display type's content", (t) => {
   const p = new Parser()
 
