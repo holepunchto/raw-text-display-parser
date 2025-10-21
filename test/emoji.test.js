@@ -67,6 +67,25 @@ test('setEmoji replaces shortcode with emoji', (t) => {
   ])
 })
 
+test("provided both shortcode and emoji,setEmoji will use emoji for text displaying, and use shortcode for display type's content", (t) => {
+  const p = new Parser()
+
+  p.appendText(':smile:')
+  const success = p.setEmoji(':smile:', ':smile:', '😄')
+
+  t.ok(success)
+  t.is(p.text, '😄') // text is chatinput text, will show user emoji over shortcode
+  t.alike(p.display, [
+    {
+      type: DISPLAY_TYPES.EMOJI,
+      start: 0,
+      end: 2,
+      content: 'smile',
+      length: 2
+    }
+  ])
+})
+
 test('setEmoji returns false if shortcode not found', (t) => {
   const p = new Parser()
 

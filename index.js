@@ -236,9 +236,7 @@ module.exports = class RawTextDisplayParser {
     if (emoji) {
       this.selectRange(this.start, this.end)
       this.appendText(emoji)
-    }
-
-    if (input !== code) {
+    } else if (input !== code) {
       this.selectRange(this.start, this.end)
       this.appendText(`${code} `) // add trailing space
     }
