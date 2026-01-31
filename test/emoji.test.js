@@ -190,3 +190,125 @@ test('setEmoji normally then type outside not remove it', (t) => {
     }
   ])
 })
+test('setUnicodeEmoji inserts a display mark for an existing unicode emoji range', (t) => {
+  const p = new Parser()
+
+  p.appendText('hi 😀!')
+
+  const ok = p.setUnicodeEmoji(3, 3 + '😀'.length, 'grinning')
+
+  t.ok(ok)
+  t.alike(p.display, [
+    {
+      type: DISPLAY_TYPES.EMOJI,
+      start: 3,
+      end: 3 + '😀'.length,
+      content: 'grinning',
+      length: '😀'.length
+    }
+  ])
+
+  t.is(p.text, 'hi 😀!')
+})
+
+test('setUnicodeEmoji returns false for invalid ranges', (t) => {
+  const p = new Parser()
+  p.appendText('hi 😀!')
+
+  t.not(p.setUnicodeEmoji(-1, 1, 'grinning'))
+  t.not(p.setUnicodeEmoji(2, 2, 'grinning'))
+  t.not(p.setUnicodeEmoji(2, 999, 'grinning'))
+})
+
+test('setUnicodeEmoji clears previous overlapping emoji marks', (t) => {
+  const p = new Parser()
+
+  p.appendText('😀😃')
+
+  const ok1 = p.setUnicodeEmoji(0, '😀'.length, 'grinning')
+  t.ok(ok1)
+
+  t.alike(p.display, [
+    {
+      type: DISPLAY_TYPES.EMOJI,
+      start: 0,
+      end: '😀'.length,
+      content: 'grinning',
+      length: '😀'.length
+    }
+  ])
+
+  const ok2 = p.setUnicodeEmoji(0, '😀'.length + '😃'.length, 'two_emojis')
+  t.ok(ok2)
+
+  t.alike(p.display, [
+    {
+      type: DISPLAY_TYPES.EMOJI,
+      start: 0,
+      end: '😀'.length + '😃'.length,
+      content: 'two_emojis',
+      length: '😀'.length + '😃'.length
+    }
+  ])
+})
+
+test('setUnicodeEmoji inserts marks in sorted order by start', (t) => {
+  const p = new Parser()
+
+  p.appendText('A 😀 B 😃 C')
+
+  // "A " => 2
+  // 😀 starts at 2
+  // "A 😀 B " => 2 + 2 + 3 = 7 => 😃 starts at 7
+  const firstStart = 2
+  const secondStart = 7
+
+  const ok2 = p.setUnicodeEmoji(
+    secondStart,
+    secondStart + '😃'.length,
+    'smiley'
+  )
+  t.ok(ok2)
+
+  const ok1 = p.setUnicodeEmoji(
+    firstStart,
+    firstStart + '😀'.length,
+    'grinning'
+  )
+  t.ok(ok1)
+
+  // should be ordered by start
+  t.alike(p.display, [
+    {
+      type: DISPLAY_TYPES.EMOJI,
+      start: firstStart,
+      end: firstStart + '😀'.length,
+      content: 'grinning',
+      length: '😀'.length
+    },
+    {
+      type: DISPLAY_TYPES.EMOJI,
+      start: secondStart,
+      end: secondStart + '😃'.length,
+      content: 'smiley',
+      length: '😃'.length
+    }
+  ])
+})
+
+test('typing inside a setUnicodeEmoji range removes the mark', (t) => {
+  const p = new Parser()
+
+  p.appendText('hi 😀!')
+
+  const start = 3
+  const end = 3 + '😀'.length
+  p.setUnicodeEmoji(start, end, 'grinning')
+
+  t.is(p.display.length, 1)
+
+  p.setPosition(start + 1)
+  p.appendText('x')
+
+  t.is(p.display.length, 0)
+})

@@ -258,6 +258,22 @@ module.exports = class RawTextDisplayParser {
     return true
   }
 
+  setUnicodeEmoji(start, end, shortcode) {
+    if (start < 0 || end <= start || end > this.text.length) return false
+
+    const upd = {
+      type: DISPLAY_TYPES.EMOJI,
+      start,
+      end,
+      content: shortcode,
+      length: end - start
+    }
+
+    this._clearPrevious(upd.start, upd.end)
+    this._insertDisplay(upd)
+    return true
+  }
+
   setMention(input, name, memberId) {
     if (this.word !== input) return false
 
