@@ -1,7 +1,29 @@
 const { DISPLAY_TYPES } = require('@holepunchto/keet-core-api')
 
+const emojis = require('@holepunchto/emojis')
+const getEmojiRegex = require('./emojiRegex')
+
+const EMOJI_RX = getEmojiRegex()
+
+let emojisInitialized = false
+function ensureEmojisInitialized() {
+  if (emojisInitialized) return
+
+  if (typeof emojis.initEmojis === 'function') {
+    emojis.initEmojis({
+      emojisPath: '/node_modules/@holepunchto/emojis/assets/'
+    })
+  }
+
+  emojisInitialized = true
+}
+
+const { getEmojiData } = emojis
+
 module.exports = class RawTextDisplayParser {
   constructor(options = {}) {
+    ensureEmojisInitialized()
+
     const {
       text = '',
       display = [],
@@ -190,20 +212,21 @@ module.exports = class RawTextDisplayParser {
   }
 
   resync(text) {
-    const shared = Math.min(this.text.length, text.length)
+    const oldText = this.text
+    const shared = Math.min(oldText.length, text.length)
     const display = []
 
     let end = 0
     for (; end < shared; end++) {
-      if (this.text[end] === text[end]) continue
+      if (oldText[end] === text[end]) continue
       break
     }
 
     let startNew = text.length - 1
-    let startOld = this.text.length - 1
+    let startOld = oldText.length - 1
 
     while (startNew >= 0 && startOld >= 0) {
-      if (this.text[startOld] !== text[startNew]) {
+      if (oldText[startOld] !== text[startNew]) {
         startNew++
         startOld++
         break
@@ -212,22 +235,50 @@ module.exports = class RawTextDisplayParser {
       startOld--
     }
 
+    const shift = startNew - startOld
     for (const d of this.display) {
       if (d.end <= end) display.push(d)
       if (startOld <= d.start)
         display.push({
           ...d,
-          start: d.start + (startNew - startOld),
-          end: d.end + (startNew - startOld)
+          start: d.start + shift,
+          end: d.end + shift
         })
     }
 
-    this.position = this.text.length && startNew >= 0 ? startNew : text.length
+    this.position = oldText.length && startNew >= 0 ? startNew : text.length
     this.text = text
     this.display = display
     this.range = null
 
+    if (text.length > oldText.length) {
+      const insertedStart = end
+      const insertedEnd = Math.min(text.length, startNew + 1)
+
+      this._applyIncrementalUnicodeEmoji(insertedStart, insertedEnd)
+    }
+
     this.appendText('')
+  }
+
+  _applyIncrementalUnicodeEmoji(insertedStart, insertedEnd) {
+    if (insertedEnd <= insertedStart) return
+
+    const insertedSlice = this.text.slice(insertedStart, insertedEnd)
+    if (!insertedSlice) return
+    if (!deltaHasEmojiCandidate(insertedSlice)) return
+    let match = null
+    while ((match = EMOJI_RX.exec(insertedSlice))) {
+      const matchedEmojiSequence = match[0]
+      const absoluteStart = insertedStart + match.index
+      const absoluteEnd = absoluteStart + matchedEmojiSequence.length
+
+      const shortcode = lookupUnicodeEmojiShortCode(matchedEmojiSequence)
+
+      if (!shortcode) continue
+
+      this.setUnicodeEmoji(absoluteStart, absoluteEnd, shortcode)
+    }
   }
 
   setEmoji(input, code, emoji) {
@@ -256,6 +307,19 @@ module.exports = class RawTextDisplayParser {
     this._insertDisplay(upd)
 
     return true
+  }
+
+  insertUnicodeEmoji(emoji, shortcode) {
+    if (!emoji) return false
+
+    const start = this.position
+    this.appendText(emoji)
+
+    const end = start + emoji.length
+    const resolvedShortcode = shortcode || lookupUnicodeEmojiShortCode(emoji)
+    if (!resolvedShortcode) return false
+
+    return this.setUnicodeEmoji(start, end, resolvedShortcode)
   }
 
   setUnicodeEmoji(start, end, shortcode) {
@@ -358,6 +422,41 @@ function isLink(word) {
 
 function isEmoji(word) {
   return word[0] === ':'
+}
+
+function lookupUnicodeEmojiShortCode(emojiSequence) {
+  let emojiData = getEmojiData(emojiSequence)
+
+  if (!emojiData) emojiData = getEmojiData(emojiToHexSequence(emojiSequence))
+
+  return emojiData?.shortCodes?.[0] || null
+}
+
+function emojiToHexSequence(emoji) {
+  return Array.from(emoji)
+    .map((c) => c.codePointAt(0).toString(16).toUpperCase())
+    .join('-')
+}
+
+function isEmojiRelated(codePoint) {
+  const isMainEmojiBlock = codePoint >= 0x1f000 && codePoint <= 0x1ffff
+  const isSymbolBlock = codePoint >= 0x2600 && codePoint <= 0x27bf
+  const isZeroWidthJoiner = codePoint === 0x200d
+  const isVariationSelector = codePoint === 0xfe0f
+  return (
+    isMainEmojiBlock ||
+    isSymbolBlock ||
+    isZeroWidthJoiner ||
+    isVariationSelector
+  )
+}
+
+function deltaHasEmojiCandidate(str) {
+  for (const char of str) {
+    const codePoint = char.codePointAt(0)
+    if (codePoint != null && isEmojiRelated(codePoint)) return true
+  }
+  return false
 }
 
 function noop() {}
