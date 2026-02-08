@@ -11,7 +11,8 @@
     "test": "prettier --check . && brittle test/*.test.js"
   },
   "dependencies": {
-    "@holepunchto/keet-core-api": "^2.11.0"
+    "@holepunchto/keet-core-api": "^2.11.0",
+    "@holepunchto/emojis": "^2.3.2"
   },
   "devDependencies": {
     "brittle": "^3.19.0",

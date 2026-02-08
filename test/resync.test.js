@@ -212,6 +212,81 @@ test('resync for append case', function (t) {
   t.alike(p.display, display)
 })
 
+test('resync detects unicode emoji when pasting into empty input', (t) => {
+  const p = new Parser()
+  p.resync('😀')
+  t.is(p.text, '😀')
+  t.is(p.position, '😀'.length)
+  t.alike(p.display, [
+    {
+      type: DISPLAY_TYPES.EMOJI,
+      start: 0,
+      end: '😀'.length,
+      content: 'grinning',
+      length: '😀'.length
+    }
+  ])
+})
+
+test('resync detects emoji when appended to existing text', (t) => {
+  const p = new Parser()
+  p.appendText('hi ')
+  p.resync('hi 😀')
+  t.is(p.text, 'hi 😀')
+  t.is(p.position, 'hi 😀'.length)
+  t.alike(p.display, [
+    {
+      type: DISPLAY_TYPES.EMOJI,
+      start: 3,
+      end: 3 + '😀'.length,
+      content: 'grinning',
+      length: '😀'.length
+    }
+  ])
+})
+
+test('resync detects emoji inserted in the middle of text', (t) => {
+  const p = new Parser()
+  p.appendText('hi !')
+  p.resync('hi 😀!')
+  t.is(p.text, 'hi 😀!')
+  t.alike(p.display, [
+    {
+      type: DISPLAY_TYPES.EMOJI,
+      start: 3,
+      end: 3 + '😀'.length,
+      content: 'grinning',
+      length: '😀'.length
+    }
+  ])
+})
+
+test('resync inserts emoji and shifts existing display ranges', (t) => {
+  const p = new Parser()
+
+  const link = 'http://a.com'
+  p.appendText(link)
+  p.setLink(link, link)
+  // insert emoji at start
+  p.resync(`😀${link}`)
+  t.alike(p.display, [
+    {
+      type: DISPLAY_TYPES.EMOJI,
+      start: 0,
+      end: '😀'.length,
+      content: 'grinning',
+      length: '😀'.length
+    },
+    {
+      type: DISPLAY_TYPES.HTTP_LINK,
+      start: '😀'.length,
+      end: '😀'.length + link.length,
+      content: link,
+      length: link.length
+    }
+  ])
+})
+
 test('resync for remove all text case', function (t) {
   const p = new Parser({
     display: [],
