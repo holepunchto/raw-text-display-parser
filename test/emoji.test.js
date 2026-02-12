@@ -132,6 +132,28 @@ test('apply emoji space check', function (t) {
   t.is(p.display.length, 1)
 })
 
+test('ondefaultemoji can set display mark for default emoji (with trailing space)', (t) => {
+  const p = new Parser({
+    ondefaultemoji: (word) => {
+      p.setEmoji(word, 'grinning', word, true)
+    }
+  })
+
+  p.appendText('😀')
+
+  t.is(p.text, '😀 ')
+
+  t.alike(p.display, [
+    {
+      type: DISPLAY_TYPES.EMOJI,
+      start: 0,
+      end: '😀'.length,
+      content: 'grinning',
+      length: '😀'.length
+    }
+  ])
+})
+
 test('setEmoji normally then type in middle to remove it', (t) => {
   const p = new Parser()
 
