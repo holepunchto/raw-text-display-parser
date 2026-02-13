@@ -10,7 +10,8 @@ module.exports = class RawTextDisplayParser {
       onlink = noop,
       onpearlink = noop,
       onemoji = noop,
-      onclear = noop
+      onclear = noop,
+      ondefaultemoji = noop
     } = options
 
     this.display = display
@@ -23,6 +24,7 @@ module.exports = class RawTextDisplayParser {
     this.onpearlink = onpearlink
     this.onemoji = onemoji
     this.onclear = onclear
+    this.ondefaultemoji = ondefaultemoji
     this.start = 0
     this.end = 0
     this.word = ''
@@ -110,6 +112,8 @@ module.exports = class RawTextDisplayParser {
       this.onpearlink(this.word)
     } else if (isEmoji(this.word)) {
       this.onemoji(this.word)
+    } else if (isDefaultEmoji(this.word)) {
+      this.ondefaultemoji(this.word)
     } else {
       this.onclear(this.word)
     }
@@ -230,17 +234,27 @@ module.exports = class RawTextDisplayParser {
     this.appendText('')
   }
 
-  setEmoji(input, code, emoji) {
+  setEmoji(input, code, emoji, isDefaultEmoji) {
     if (this.word !== input) return false
 
     const start = this.start
+    // Check if we already have an emoji registered at this exact spot
+    const existing = this.display.find(
+      (d) => d.start === start && d.type === DISPLAY_TYPES.EMOJI
+    )
+    // We skip appending the space to break the loop.
+    if (isDefaultEmoji && existing) {
+      return true
+    }
 
-    if (emoji) {
+    if (isDefaultEmoji) {
+      this.appendText(' ')
+    } else if (emoji) {
       this.selectRange(this.start, this.end)
       this.appendText(emoji)
     } else if (input !== code) {
       this.selectRange(this.start, this.end)
-      this.appendText(`${code} `) // add trailing space
+      this.appendText(`${code} `)
     }
 
     const length = emoji ? emoji.length : code.length
@@ -248,7 +262,7 @@ module.exports = class RawTextDisplayParser {
       type: DISPLAY_TYPES.EMOJI,
       start,
       end: start + length,
-      content: code.slice(1, -1),
+      content: code[0] === ':' ? code.slice(1, -1) : code,
       length
     }
 
@@ -358,6 +372,10 @@ function isLink(word) {
 
 function isEmoji(word) {
   return word[0] === ':'
+}
+
+function isDefaultEmoji(word) {
+  return /\p{Extended_Pictographic}/u.test(word)
 }
 
 function noop() {}

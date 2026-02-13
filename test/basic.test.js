@@ -98,6 +98,22 @@ test('emoji not found', (t) => {
   ])
 })
 
+test('ondefaultemoji is called for default emoji tokens', (t) => {
+  let called = 0
+  let last = null
+
+  const p = new Parser({
+    ondefaultemoji: (word) => {
+      called++
+      last = word
+    }
+  })
+  p.appendText('😀')
+
+  t.is(called, 1)
+  t.is(last, '😀')
+})
+
 test('flush', (t) => {
   const text = 'http://keet.io'
   const p = new Parser({ onlink: (link) => p.setLink(link, link) })
