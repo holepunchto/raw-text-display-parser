@@ -104,18 +104,61 @@ module.exports = class RawTextDisplayParser {
 
     this._updateWord()
 
-    if (isMention(this.word)) {
-      this.onmention(this.word)
-    } else if (isLink(this.word)) {
-      this.onlink(this.word)
-    } else if (this.isPearLink(this.word)) {
-      this.onpearlink(this.word)
-    } else if (isEmoji(this.word)) {
-      this.onemoji(this.word)
-    } else if (isDefaultEmoji(this.word)) {
-      this.ondefaultemoji(this.word)
+    this._dispatchWord(this.word, this.start, this.end)
+  }
+
+  _fireAllWords() {
+    const text = this.text
+    const len = text.length
+    let i = 0
+
+    while (i <= len) {
+      while (
+        i < len &&
+        (text[i] === ' ' || text[i] === '\n' || text[i] === '\t')
+      )
+        i++
+      if (i >= len) break
+
+      // find end of token
+      let j = i
+      while (j < len && text[j] !== ' ' && text[j] !== '\n' && text[j] !== '\t')
+        j++
+
+      const word = text.slice(i, j)
+      const wStart = i
+      const wEnd = j
+
+      // check if this token is already fully covered by a preserved display entry
+      const alreadyCovered = this.display.some(
+        (d) => d.start === wStart && d.end === wEnd
+      )
+
+      if (!alreadyCovered) this._dispatchWord(text.slice(i, j), i, j)
+
+      i = j
+    }
+
+    this._updateWord()
+  }
+
+  _dispatchWord(word, start, end) {
+    this.word = word
+    this.start = start
+    this.end = end
+
+    if (isMention(word)) {
+      this.onmention(word)
+    } else if (isLink(word)) {
+      this.onlink(word)
+    } else if (this.isPearLink(word)) {
+      this.onpearlink(word)
+    } else if (isEmoji(word)) {
+      this.onemoji(word)
+    } else if (isDefaultEmoji(word)) {
+      this.ondefaultemoji(word)
     } else {
-      this.onclear(this.word)
+      this.onclear(word)
     }
   }
 
@@ -231,7 +274,7 @@ module.exports = class RawTextDisplayParser {
     this.display = display
     this.range = null
 
-    this.appendText('')
+    this._fireAllWords()
   }
 
   setEmoji(input, code, emoji, isDefaultEmoji) {
