@@ -110,34 +110,24 @@ module.exports = class RawTextDisplayParser {
   _fireAllWords() {
     const text = this.text
     const len = text.length
-    let i = 0
 
-    while (i <= len) {
-      while (
-        i < len &&
-        (text[i] === ' ' || text[i] === '\n' || text[i] === '\t')
-      )
-        i++
-      if (i >= len) break
+		const isEndWord = c => c === ' ' || c === '\n' || c === '\t'  
 
-      // find end of token
-      let j = i
-      while (j < len && text[j] !== ' ' && text[j] !== '\n' && text[j] !== '\t')
-        j++
+    let start = 0
+		while (start < len) {
+				while (start < len && isEndWord(text[start])) start++
+				if (start >= len) break
 
-      const word = text.slice(i, j)
-      const wStart = i
-      const wEnd = j
+				let end = start
+				while (end < len && !isEndWord(text[end])) end++
 
-      // check if this token is already fully covered by a preserved display entry
-      const alreadyCovered = this.display.some(
-        (d) => d.start === wStart && d.end === wEnd
-      )
+				const alreadyCovered = this.display.some(
+						(d) => d.start === start && d.end === end
+				)
+				if (!alreadyCovered) this._dispatchWord(text.slice(start, end), start, end)
 
-      if (!alreadyCovered) this._dispatchWord(text.slice(i, j), i, j)
-
-      i = j
-    }
+				start = end
+		}
 
     this._updateWord()
   }
