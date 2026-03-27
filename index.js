@@ -104,18 +104,50 @@ module.exports = class RawTextDisplayParser {
 
     this._updateWord()
 
-    if (isMention(this.word)) {
-      this.onmention(this.word)
-    } else if (isLink(this.word)) {
-      this.onlink(this.word)
-    } else if (this.isPearLink(this.word)) {
-      this.onpearlink(this.word)
-    } else if (isEmoji(this.word)) {
-      this.onemoji(this.word)
-    } else if (isDefaultEmoji(this.word)) {
-      this.ondefaultemoji(this.word)
+    this._dispatchWord(this.word, this.start, this.end)
+  }
+
+  _fireAllWords() {
+    const text = this.text
+    const len = text.length
+
+    let start = 0
+    while (start < len) {
+      while (start < len && isEndWord(text[start])) start++
+      if (start >= len) break
+
+      let end = start
+      while (end < len && !isEndWord(text[end])) end++
+
+      const alreadyCovered = this.display.some(
+        (d) => d.start === start && d.end === end
+      )
+      if (!alreadyCovered)
+        this._dispatchWord(text.slice(start, end), start, end)
+
+      start = end
+    }
+
+    this._updateWord()
+  }
+
+  _dispatchWord(word, start, end) {
+    this.word = word
+    this.start = start
+    this.end = end
+
+    if (isMention(word)) {
+      this.onmention(word)
+    } else if (isLink(word)) {
+      this.onlink(word)
+    } else if (this.isPearLink(word)) {
+      this.onpearlink(word)
+    } else if (isEmoji(word)) {
+      this.onemoji(word)
+    } else if (isDefaultEmoji(word)) {
+      this.ondefaultemoji(word)
     } else {
-      this.onclear(this.word)
+      this.onclear(word)
     }
   }
 
@@ -231,7 +263,7 @@ module.exports = class RawTextDisplayParser {
     this.display = display
     this.range = null
 
-    this.appendText('')
+    this._fireAllWords()
   }
 
   setEmoji(input, code, emoji, isDefaultEmoji) {
@@ -379,3 +411,7 @@ function isDefaultEmoji(word) {
 }
 
 function noop() {}
+
+function isEndWord(c) {
+  return c === ' ' || c === '\n' || c === '\t'
+}

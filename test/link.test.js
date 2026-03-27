@@ -126,3 +126,88 @@ test('setLink with text lines before and after link', (t) => {
     }
   ])
 })
+
+test('resync fires onlink for every link in a multi-link paste', (t) => {
+  const links = []
+  const p = new Parser({
+    onlink(link) {
+      links.push(link)
+    }
+  })
+
+  const link1 = 'http://example.com'
+  const link2 = 'https://other.com'
+  const link3 = 'www.third.com'
+  p.resync(`${link1}\n${link2}\n${link3}`)
+
+  t.is(links.length, 3)
+  t.is(links[0], link1)
+  t.is(links[1], link2)
+  t.is(links[2], link3)
+})
+
+test('resync fires onlink for every link separated by spaces', (t) => {
+  const links = []
+  const p = new Parser({
+    onlink(link) {
+      links.push(link)
+    }
+  })
+
+  const link1 = 'http://example.com'
+  const link2 = 'https://other.com'
+  p.resync(`${link1} ${link2}`)
+
+  t.is(links.length, 2)
+  t.is(links[0], link1)
+  t.is(links[1], link2)
+})
+
+test('resync does not re-fire onlink for already preserved display entries', (t) => {
+  const links = []
+  const p = new Parser({
+    onlink(link) {
+      links.push(link)
+    }
+  })
+
+  const link1 = 'http://example.com'
+  const link2 = 'https://other.com'
+
+  // establish link1 as already parsed in display
+  p.text = link1 + ' some text'
+  p.display = [
+    {
+      type: DISPLAY_TYPES.HTTP_LINK,
+      start: 0,
+      end: link1.length,
+      content: link1,
+      length: link1.length
+    }
+  ]
+  p.position = p.text.length
+
+  links.length = 0 // reset after setup
+
+  p.resync(link1 + ' some text ' + link2)
+
+  t.is(links.length, 1)
+  t.is(links[0], link2)
+})
+
+test('resync fires onlink for all links mixed with plain text', (t) => {
+  const links = []
+  const p = new Parser({
+    onlink(link) {
+      links.push(link)
+    }
+  })
+
+  const link1 = 'http://example.com'
+  const link2 = 'https://other.com'
+  p.resync(`hello ${link1} world ${link2} bye`)
+
+  t.is(links.length, 2)
+  t.is(links[0], link1)
+  t.is(links[1], link2)
+})
