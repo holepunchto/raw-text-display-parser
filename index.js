@@ -111,23 +111,22 @@ module.exports = class RawTextDisplayParser {
     const text = this.text
     const len = text.length
 
-		const isEndWord = c => c === ' ' || c === '\n' || c === '\t'  
-
     let start = 0
-		while (start < len) {
-				while (start < len && isEndWord(text[start])) start++
-				if (start >= len) break
+    while (start < len) {
+      while (start < len && isEndWord(text[start])) start++
+      if (start >= len) break
 
-				let end = start
-				while (end < len && !isEndWord(text[end])) end++
+      let end = start
+      while (end < len && !isEndWord(text[end])) end++
 
-				const alreadyCovered = this.display.some(
-						(d) => d.start === start && d.end === end
-				)
-				if (!alreadyCovered) this._dispatchWord(text.slice(start, end), start, end)
+      const alreadyCovered = this.display.some(
+        (d) => d.start === start && d.end === end
+      )
+      if (!alreadyCovered)
+        this._dispatchWord(text.slice(start, end), start, end)
 
-				start = end
-		}
+      start = end
+    }
 
     this._updateWord()
   }
@@ -412,3 +411,7 @@ function isDefaultEmoji(word) {
 }
 
 function noop() {}
+
+function isEndWord(c) {
+  return c === ' ' || c === '\n' || c === '\t'
+}
