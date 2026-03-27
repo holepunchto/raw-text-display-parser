@@ -1,6 +1,6 @@
 {
   "name": "@holepunchto/raw-text-display-parser",
-  "version": "2.4.9",
+  "version": "2.4.10",
   "description": "Small state machine to parse chat input state when using raw text",
   "main": "index.js",
   "files": [
