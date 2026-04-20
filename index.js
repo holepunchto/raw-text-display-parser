@@ -120,7 +120,7 @@ module.exports = class RawTextDisplayParser {
       while (end < len && !isEndWord(text[end])) end++
 
       const alreadyCovered = this.display.some(
-        (d) => d.start === start && d.end === end
+        (d) => d.start <= start && d.end >= end
       )
       if (!alreadyCovered)
         this._dispatchWord(text.slice(start, end), start, end)

@@ -221,3 +221,43 @@ test('resync for remove all text case', function (t) {
   p.resync('')
   t.is(p.position, 0)
 })
+
+test('resync link list', function (t) {
+  let counter = 0
+  const p = new Parser({
+    onlink(link) {
+      counter++
+      p.setLink(link, link)
+    }
+  })
+  const link1 = 'http://1.com'
+  const link2 = 'http://2.com'
+  const link3 = 'http://3.com'
+
+  p.resync(`${link1} ${link2} ${link3}`)
+  t.is(counter, 3)
+  t.is(p.text, `${link1} ${link2} ${link3}`)
+  t.alike(p.display, [
+    {
+      type: DISPLAY_TYPES.HTTP_LINK,
+      start: 0,
+      end: 12,
+      content: link1,
+      length: link1.length
+    },
+    {
+      type: DISPLAY_TYPES.HTTP_LINK,
+      start: 13,
+      end: 25,
+      content: link2,
+      length: link2.length
+    },
+    {
+      type: DISPLAY_TYPES.HTTP_LINK,
+      start: 26,
+      end: 38,
+      content: link3,
+      length: link3.length
+    }
+  ])
+})
