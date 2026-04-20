@@ -253,3 +253,73 @@ test('setMention 1st time then go to start setMention 2nd time', (t) => {
     }
   ])
 })
+
+test('mention the name that contain space and default-emoji', (t) => {
+  let mentionCalled = 0
+  let lastWord = ''
+  const p = new Parser({
+    onmention: (mention) => {
+      mentionCalled++
+      lastWord = mention
+    }
+  })
+
+  p.resync('@d')
+  t.is(mentionCalled, 1)
+  t.is(lastWord, '@d')
+
+  const success1 = p.setMention('@d', '@dinh 🟢', '1')
+  t.ok(success1)
+  t.is(p.text, '@dinh 🟢 ')
+  t.is(p.text.slice(p.display[0].start, p.display[0].end), '@dinh 🟢')
+  t.alike(p.display, [
+    {
+      type: DISPLAY_TYPES.MENTION,
+      start: 0,
+      end: 8,
+      length: 8,
+      memberId: '1'
+    }
+  ])
+
+  p.resync('@dinh 🟢 @')
+  t.is(mentionCalled, 2)
+  t.is(lastWord, '@')
+
+  t.is(p.text, '@dinh 🟢 @')
+  t.is(p.text.slice(p.display[0].start, p.display[0].end), '@dinh 🟢')
+  t.alike(p.display, [
+    {
+      type: DISPLAY_TYPES.MENTION,
+      start: 0,
+      end: 8,
+      length: 8,
+      memberId: '1'
+    }
+  ])
+
+  const success2 = p.setMention('@', '@dinh text only', '2')
+  t.ok(success2)
+  t.is(p.text, '@dinh 🟢 @dinh text only ')
+  t.is(p.text.slice(p.display[1].start, p.display[1].end), '@dinh text only')
+  t.alike(p.display, [
+    {
+      type: DISPLAY_TYPES.MENTION,
+      start: 0,
+      end: 8,
+      length: 8,
+      memberId: '1'
+    },
+    {
+      type: DISPLAY_TYPES.MENTION,
+      start: 9,
+      end: 24,
+      length: 15,
+      memberId: '2'
+    }
+  ])
+
+  p.resync('@dinh 🟢 @dinh text only @dinh')
+  t.is(mentionCalled, 3)
+  t.is(lastWord, '@dinh')
+})
