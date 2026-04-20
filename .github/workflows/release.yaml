@@ -1,0 +1,115 @@
+name: 🚀 Publish release
+run-name: ${{ inputs.bumpVersion == 'none' && 'Re-try making a new release' || format('Release a new {0} version', inputs.bumpVersion) }}
+
+env:
+  NODE_VERSION: '24.14.0'
+
+on:
+  workflow_dispatch:
+    inputs:
+      bumpVersion:
+        type: choice
+        description: Select version to bump
+        default: none
+        options:
+          - none
+          - patch
+          - minor
+          - major
+          - prerelease
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: Release a new version
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: write
+      packages: read
+      id-token: write
+    steps:
+      - name: Print all inputs and global env variables
+        id: input-and-env
+        run: |
+          echo "Inputs:"
+          echo "${{ toJSON(github.event.inputs) }}"
+
+          echo "Env:"
+          echo "${{ toJSON(env) }}"
+
+      - name: Check out Git repository
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+
+      - name: Git config
+        id: git-config
+        run: |
+          git config user.name 'GitHub Actions Bot'
+          git config user.email 'bot@github.actions.com'
+
+      - name: Set up Node.js 🟢
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          registry-url: 'https://npm.pkg.github.com'
+          scope: '@holepunchto'
+
+      - name: Install dependencies
+        timeout-minutes: 5
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: npm install
+
+      - name: Update version
+        if: ${{ inputs.bumpVersion != 'none' }}
+        run: |
+          npm version ${{ inputs.bumpVersion }}
+          git push --follow-tags
+
+      - name: Publish a npm release
+        env:
+          NPM_CONFIG_REGISTRY: https://registry.npmjs.org
+        run: |
+          version=$(npm pkg get version | tr -d \")
+          if [[ "$version" == *-* ]]; then
+            npm publish --tag prerelease
+          else
+            npm publish
+          fi
+
+      - name: Set Github Shared Variables
+        id: env-setup
+        run: |
+          version=$(npm pkg get version | tr -d \")
+          echo "VERSION=$version" >> $GITHUB_OUTPUT
+
+      - name: Make Github Release Body
+        id: git_release_body
+        run: |
+          version="${{ steps.env-setup.outputs.VERSION }}"
+          ref="${GITHUB_REF##*/}"
+          {
+            echo "message<<EOF"
+            echo "Release: v${version}"
+            echo ""
+            echo "Branch: ${ref}"
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Publish Github Release
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: v${{ steps.env-setup.outputs.VERSION }}
+          BODY: ${{ steps.git_release_body.outputs.message }}
+        run: |
+          gh release create "$TAG" \
+            --title "$TAG" \
+            --notes "$BODY" \
+            --generate-notes
