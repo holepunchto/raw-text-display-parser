@@ -29,7 +29,8 @@ jobs:
     timeout-minutes: 10
     permissions:
       contents: write
-      packages: write
+      packages: read
+      id-token: write
     steps:
       - name: Print all inputs and global env variables
         id: input-and-env
@@ -73,7 +74,7 @@ jobs:
 
       - name: Publish a npm release
         env:
-          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NPM_CONFIG_REGISTRY: https://registry.npmjs.org
         run: |
           version=$(npm pkg get version | tr -d \")
           if [[ "$version" == *-* ]]; then
