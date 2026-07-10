@@ -154,6 +154,30 @@ test('ondefaultemoji can set display mark for default emoji (with trailing space
   ])
 })
 
+test('ondefaultemoji does not recurse when resync leaves cursor before an uncovered emoji word', (t) => {
+  const p = new Parser({
+    ondefaultemoji: (word) => {
+      // consumers only call setEmoji when the word resolves to a known emoji
+      if (word !== '😀') return
+      p.setEmoji(word, 'grinning', word, true)
+    }
+  })
+
+  p.resync('x😀')
+  p.resync('a 😀')
+
+  t.is(p.text, 'a 😀')
+  t.alike(p.display, [
+    {
+      type: DISPLAY_TYPES.EMOJI,
+      start: 2,
+      end: 2 + '😀'.length,
+      content: 'grinning',
+      length: '😀'.length
+    }
+  ])
+})
+
 test('setEmoji normally then type in middle to remove it', (t) => {
   const p = new Parser()
 

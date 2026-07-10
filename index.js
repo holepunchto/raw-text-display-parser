@@ -280,7 +280,8 @@ module.exports = class RawTextDisplayParser {
     }
 
     if (isDefaultEmoji) {
-      this.appendText(' ')
+      // appending while the cursor is before the word re-dispatches it forever
+      if (this.position === this.end) this.appendText(' ')
     } else if (emoji) {
       this.selectRange(this.start, this.end)
       this.appendText(emoji)
