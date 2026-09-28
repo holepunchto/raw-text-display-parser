@@ -235,15 +235,14 @@ module.exports = class RawTextDisplayParser {
       break
     }
 
-    let startNew = text.length - 1
-    let startOld = this.text.length - 1
+    let startNew = text.length
+    let startOld = this.text.length
 
-    while (startNew >= 0 && startOld >= 0) {
-      if (this.text[startOld] !== text[startNew]) {
-        startNew++
-        startOld++
-        break
-      }
+    while (
+      startNew > end &&
+      startOld > end &&
+      this.text[startOld - 1] === text[startNew - 1]
+    ) {
       startNew--
       startOld--
     }
@@ -258,7 +257,7 @@ module.exports = class RawTextDisplayParser {
         })
     }
 
-    this.position = this.text.length && startNew >= 0 ? startNew : text.length
+    this.position = this.text.length ? startNew : text.length
     this.text = text
     this.display = display
     this.range = null
@@ -281,7 +280,9 @@ module.exports = class RawTextDisplayParser {
 
     if (isDefaultEmoji) {
       // appending while the cursor is before the word re-dispatches it forever
-      if (this.position === this.end) this.appendText(' ')
+      if (this.position === this.end && !isEndWord(this.text[this.end])) {
+        this.appendText(' ')
+      }
     } else if (emoji) {
       this.selectRange(this.start, this.end)
       this.appendText(emoji)

@@ -261,3 +261,35 @@ test('resync link list', function (t) {
     }
   ])
 })
+
+test('resync deleting one of two identical adjacent emojis keeps one display', function (t) {
+  const p = new Parser()
+
+  p.appendText('😀😀 ')
+  p.setUnicodeEmoji(0, 2, 'grinning')
+  p.setUnicodeEmoji(2, 4, 'grinning')
+
+  p.resync('😀 ')
+
+  t.is(p.text, '😀 ')
+  t.is(p.position, 2)
+  t.alike(p.display, [
+    {
+      type: DISPLAY_TYPES.EMOJI,
+      start: 0,
+      end: 2,
+      content: 'grinning',
+      length: 2
+    }
+  ])
+})
+
+test('resync typing a repeated character keeps the cursor after it', function (t) {
+  const p = new Parser()
+
+  p.appendText('aa')
+  p.resync('aaa')
+
+  t.is(p.text, 'aaa')
+  t.is(p.position, 3)
+})
