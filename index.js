@@ -235,21 +235,16 @@ module.exports = class RawTextDisplayParser {
       break
     }
 
-    let startNew = text.length - 1
-    let startOld = this.text.length - 1
+    let startNew = text.length
+    let startOld = this.text.length
 
-    while (startNew >= 0 && startOld >= 0) {
-      if (
-        this.text[startOld] !== text[startNew] ||
-        end >= text.length ||
-        end >= this.text.length
-      ) {
-        startNew++
-        startOld++
+    while (startNew > end && startOld > end) {
+      if (this.text[startOld - 1] === text[startNew - 1]) {
+        startNew--
+        startOld--
+      } else {
         break
       }
-      startNew--
-      startOld--
     }
 
     for (const d of this.display) {
