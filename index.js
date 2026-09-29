@@ -235,6 +235,9 @@ module.exports = class RawTextDisplayParser {
       break
     }
 
+    const split = this.display.find((d) => d.start < end && end < d.end)
+    if (split) end = split.start
+
     let startNew = text.length
     let startOld = this.text.length
 
