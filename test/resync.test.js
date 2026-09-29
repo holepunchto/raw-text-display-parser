@@ -412,3 +412,29 @@ test('resync test modify emoji', function (t) {
   t.is(p.position, 5)
   t.alike(p.display, [firstEmojiDisplay])
 })
+
+test('resync deleting one of two identical adjacent emojis keeps one display', function (t) {
+  const p = new Parser({
+    ondefaultemoji: (word) => {
+      if (word.length > 2) return
+      p.setEmoji(word, 'grinning', word, true)
+    }
+  })
+
+  p.resync('😀😀 ')
+  t.is(p.text, '😀😀 ')
+  t.alike(p.display, [])
+
+  p.resync('😀 ')
+  t.is(p.text, '😀 ')
+  t.is(p.position, 2)
+  t.alike(p.display, [
+    {
+      type: DISPLAY_TYPES.EMOJI,
+      start: 0,
+      end: 2,
+      content: 'grinning',
+      length: 2
+    }
+  ])
+})
