@@ -262,7 +262,7 @@ test('resync link list', function (t) {
   ])
 })
 
-test('resync typing a repeated character keeps the cursor after it', function (t) {
+test('resync: repeated character keeps the cursor at the end', function (t) {
   const p = new Parser()
 
   p.resync('aa')
@@ -413,7 +413,7 @@ test('resync test modify emoji', function (t) {
   t.alike(p.display, [firstEmojiDisplay])
 })
 
-test('resync deleting one of two identical adjacent emojis keeps one display', function (t) {
+test('resync deleting one emoji keep one emoji', function (t) {
   const p = new Parser({
     ondefaultemoji: (word) => {
       if (word.length > 2) return
@@ -552,7 +552,7 @@ test('resync: manual pick 2 emojis, then manual delete 1st one using resync', fu
   t.alike(p.display, [emoji(0, 'rocket'), emoji(2, 'smiley')])
 })
 
-test('0001', function (t) {
+test('resync deleting one of two identical adjacent emojis keeps one display', function (t) {
   const p = new Parser()
 
   p.appendText('😀😀 ')
@@ -574,7 +574,7 @@ test('0001', function (t) {
   ])
 })
 
-test('0002', function (t) {
+test('resync typing a repeated character keeps the cursor after it', function (t) {
   const p = new Parser()
 
   p.appendText('aa')
@@ -584,7 +584,7 @@ test('0002', function (t) {
   t.is(p.position, 3)
 })
 
-test('0003', function (t) {
+test('resync deleting an emoji that shares a surrogate with the next keeps the next display', function (t) {
   const p = new Parser()
 
   p.appendText('😀😃 ')
@@ -606,7 +606,7 @@ test('0003', function (t) {
   ])
 })
 
-test('0004', function (t) {
+test('resync deleting a multi-unit emoji whose prefix matches the next keeps the next display', function (t) {
   const p = new Parser()
 
   p.appendText('👍🏽👍 ')
