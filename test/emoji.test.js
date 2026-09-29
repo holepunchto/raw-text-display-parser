@@ -358,3 +358,26 @@ test('typing inside a setUnicodeEmoji range removes the mark', (t) => {
 
   t.is(p.display.length, 0)
 })
+
+test('ondefaultemoji reuses an existing space after the emoji', (t) => {
+  const p = new Parser({
+    ondefaultemoji: (word) => {
+      p.setEmoji(word, 'grinning', word, true)
+    }
+  })
+
+  p.resync('a  b')
+  p.resync('a 😀 b')
+
+  t.is(p.text, 'a 😀 b')
+  t.is(p.position, 2 + '😀'.length)
+  t.alike(p.display, [
+    {
+      type: DISPLAY_TYPES.EMOJI,
+      start: 2,
+      end: 2 + '😀'.length,
+      content: 'grinning',
+      length: '😀'.length
+    }
+  ])
+})
