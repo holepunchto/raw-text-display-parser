@@ -235,6 +235,11 @@ module.exports = class RawTextDisplayParser {
       break
     }
 
+    // a deleted emoji can share leading code units with the next one (surrogate half,
+    // base emoji before a skin tone); a prefix ending inside it drops the next display
+    const split = this.display.find((d) => d.start < end && end < d.end)
+    if (split) end = split.start
+
     let startNew = text.length
     let startOld = this.text.length
 

@@ -293,3 +293,47 @@ test('resync typing a repeated character keeps the cursor after it', function (t
   t.is(p.text, 'aaa')
   t.is(p.position, 3)
 })
+
+test('resync deleting an emoji that shares a surrogate with the next keeps the next display', function (t) {
+  const p = new Parser()
+
+  p.appendText('😀😃 ')
+  p.setUnicodeEmoji(0, 2, 'grinning')
+  p.setUnicodeEmoji(2, 4, 'smiley')
+
+  p.resync('😃 ')
+
+  t.is(p.text, '😃 ')
+  t.is(p.position, 0)
+  t.alike(p.display, [
+    {
+      type: DISPLAY_TYPES.EMOJI,
+      start: 0,
+      end: 2,
+      content: 'smiley',
+      length: 2
+    }
+  ])
+})
+
+test('resync deleting a multi-unit emoji whose prefix matches the next keeps the next display', function (t) {
+  const p = new Parser()
+
+  p.appendText('👍🏽👍 ')
+  p.setUnicodeEmoji(0, 4, 'thumbsup_tone3')
+  p.setUnicodeEmoji(4, 6, 'thumbsup')
+
+  p.resync('👍 ')
+
+  t.is(p.text, '👍 ')
+  t.is(p.position, 0)
+  t.alike(p.display, [
+    {
+      type: DISPLAY_TYPES.EMOJI,
+      start: 0,
+      end: 2,
+      content: 'thumbsup',
+      length: 2
+    }
+  ])
+})
