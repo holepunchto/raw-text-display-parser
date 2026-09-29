@@ -378,3 +378,37 @@ test('resync test start modification', function (t) {
   t.is(p.position, 1)
   t.alike(p.display, [])
 })
+
+test('resync test modify emoji', function (t) {
+  const firstEmojiDisplay = {
+    type: DISPLAY_TYPES.EMOJI,
+    start: 2,
+    end: 4,
+    content: 'grinning',
+    length: 2
+  }
+
+  const secondEmojiDisplay = {
+    type: DISPLAY_TYPES.EMOJI,
+    start: 5,
+    end: 7,
+    content: 'grinning',
+    length: 2
+  }
+
+  const p = new Parser({
+    ondefaultemoji: (word) => {
+      p.setEmoji(word, 'grinning', word, true)
+    }
+  })
+
+  p.resync('x 😀 😀 y')
+  t.is(p.text, 'x 😀 😀 y')
+  t.is(p.position, 9)
+  t.alike(p.display, [firstEmojiDisplay, secondEmojiDisplay])
+
+  p.resync('x 😀 y')
+  t.is(p.text, 'x 😀 y')
+  t.is(p.position, 5)
+  t.alike(p.display, [firstEmojiDisplay])
+})
