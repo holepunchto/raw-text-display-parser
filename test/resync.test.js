@@ -274,7 +274,7 @@ test('resync typing a repeated character keeps the cursor after it', function (t
   t.is(p.position, 3)
 })
 
-test('resync aaa ', function (t) {
+test('resync test remove mention', function (t) {
   const firstMentionDisplay = {
     type: DISPLAY_TYPES.MENTION,
     start: 0,
@@ -317,7 +317,7 @@ test('resync aaa ', function (t) {
   t.alike(p.display, [firstMentionDisplay])
 })
 
-test('resync aaa ', function (t) {
+test('resync test modify mention', function (t) {
   const p = new Parser({
     onmention(mention) {
       p.setMention(mention, '@bob', 'member-id-0')
@@ -349,4 +349,18 @@ test('resync aaa ', function (t) {
       memberId: 'member-id-0'
     }
   ])
+})
+
+test('resync test aaaaa', function (t) {
+  const p = new Parser()
+
+  p.resync('xaay')
+  t.is(p.text, 'xaay')
+  t.is(p.position, 4)
+  t.alike(p.display, [])
+
+  p.resync('xaaay')
+  t.is(p.text, 'xaaay')
+  t.is(p.position, 4)
+  t.alike(p.display, [])
 })
