@@ -262,7 +262,7 @@ module.exports = class RawTextDisplayParser {
         })
     }
 
-    this.position = this.text.length ? startNew : text.length
+    this.position = this.text.length && startNew >= 0 ? startNew : text.length
     this.text = text
     this.display = display
     this.range = null
