@@ -235,15 +235,19 @@ module.exports = class RawTextDisplayParser {
       break
     }
 
-    let startNew = text.length - 1
-    let startOld = this.text.length - 1
+    // a deleted emoji can share leading code units with the next one (surrogate half,
+    // base emoji before a skin tone); a prefix ending inside it drops the next display
+    const split = this.display.find((d) => d.start < end && end < d.end)
+    if (split) end = split.start
 
-    while (startNew >= 0 && startOld >= 0) {
-      if (this.text[startOld] !== text[startNew]) {
-        startNew++
-        startOld++
-        break
-      }
+    let startNew = text.length
+    let startOld = this.text.length
+
+    while (
+      startNew > end &&
+      startOld > end &&
+      this.text[startOld - 1] === text[startNew - 1]
+    ) {
       startNew--
       startOld--
     }
@@ -258,7 +262,7 @@ module.exports = class RawTextDisplayParser {
         })
     }
 
-    this.position = this.text.length && startNew >= 0 ? startNew : text.length
+    this.position = this.text.length ? startNew : text.length
     this.text = text
     this.display = display
     this.range = null
