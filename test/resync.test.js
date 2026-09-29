@@ -261,3 +261,15 @@ test('resync link list', function (t) {
     }
   ])
 })
+
+test('resync typing a repeated character keeps the cursor after it', function (t) {
+  const p = new Parser()
+
+  p.resync('aa')
+  t.is(p.text, 'aa')
+  t.is(p.position, 2)
+
+  p.resync('aaa')
+  t.is(p.text, 'aaa')
+  t.is(p.position, 3)
+})
