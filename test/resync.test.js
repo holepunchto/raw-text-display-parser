@@ -438,3 +438,116 @@ test('resync deleting one of two identical adjacent emojis keeps one display', f
     }
   ])
 })
+
+test('resync: manual pick 2 emojis, then manual delete 1st one using backspace', function (t) {
+  const emoji = (start, content) => ({
+    type: DISPLAY_TYPES.EMOJI,
+    start,
+    end: start + 2,
+    content,
+    length: 2
+  })
+
+  const p = new Parser({
+    ondefaultemoji: (word) => {
+      if (word === '😀') p.setEmoji(word, 'grinning', word, true)
+      if (word === '🚀') p.setEmoji(word, 'rocket', word, true)
+      if (word === '😃') p.setEmoji(word, 'smiley', word, true)
+    }
+  })
+
+  p.resync('😀')
+  t.is(p.text, '😀 ')
+  t.is(p.position, 3)
+  t.alike(p.display, [emoji(0, 'grinning')])
+
+  p.resync('😀 🚀')
+  t.is(p.text, '😀 🚀 ')
+  t.is(p.position, 6)
+  t.alike(p.display, [emoji(0, 'grinning'), emoji(3, 'rocket')])
+
+  p.resync('😀 🚀 😃')
+  t.is(p.text, '😀 🚀 😃 ')
+  t.is(p.position, 9)
+  t.alike(p.display, [
+    emoji(0, 'grinning'),
+    emoji(3, 'rocket'),
+    emoji(6, 'smiley')
+  ])
+
+  // remove 3 extra spaces that auto-added by parser
+  p.backspace()
+  p.setPosition(6)
+  p.backspace()
+  p.setPosition(3)
+  p.backspace()
+  t.is(p.text, '😀🚀😃')
+  t.alike(p.display, [
+    emoji(0, 'grinning'),
+    emoji(2, 'rocket'),
+    emoji(4, 'smiley')
+  ])
+
+  // remove 1st emoji
+  p.setPosition(2)
+  p.backspace()
+  t.is(p.text, '🚀😃')
+  t.is(p.position, 0)
+  t.alike(p.display, [emoji(0, 'rocket'), emoji(2, 'smiley')])
+})
+
+test('resync: manual pick 2 emojis, then manual delete 1st one using resync', function (t) {
+  const emoji = (start, content) => ({
+    type: DISPLAY_TYPES.EMOJI,
+    start,
+    end: start + 2,
+    content,
+    length: 2
+  })
+
+  const p = new Parser({
+    ondefaultemoji: (word) => {
+      if (word === '😀') p.setEmoji(word, 'grinning', word, true)
+      if (word === '🚀') p.setEmoji(word, 'rocket', word, true)
+      if (word === '😃') p.setEmoji(word, 'smiley', word, true)
+    }
+  })
+
+  p.resync('😀')
+  t.is(p.text, '😀 ')
+  t.is(p.position, 3)
+  t.alike(p.display, [emoji(0, 'grinning')])
+
+  p.resync('😀 🚀')
+  t.is(p.text, '😀 🚀 ')
+  t.is(p.position, 6)
+  t.alike(p.display, [emoji(0, 'grinning'), emoji(3, 'rocket')])
+
+  p.resync('😀 🚀 😃')
+  t.is(p.text, '😀 🚀 😃 ')
+  t.is(p.position, 9)
+  t.alike(p.display, [
+    emoji(0, 'grinning'),
+    emoji(3, 'rocket'),
+    emoji(6, 'smiley')
+  ])
+
+  // remove 3 extra spaces that auto-added by parser
+  p.backspace()
+  p.setPosition(6)
+  p.backspace()
+  p.setPosition(3)
+  p.backspace()
+  t.is(p.text, '😀🚀😃')
+  t.alike(p.display, [
+    emoji(0, 'grinning'),
+    emoji(2, 'rocket'),
+    emoji(4, 'smiley')
+  ])
+
+  // remove 1st emoji by resync
+  p.resync('🚀😃')
+  t.is(p.text, '🚀😃')
+  t.is(p.position, 0)
+  t.alike(p.display, [emoji(0, 'rocket'), emoji(2, 'smiley')])
+})
