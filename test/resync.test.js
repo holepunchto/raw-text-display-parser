@@ -262,6 +262,296 @@ test('resync link list', function (t) {
   ])
 })
 
+test('resync typing a repeated character keeps the cursor after it', function (t) {
+  const p = new Parser()
+
+  p.resync('aa')
+  t.is(p.text, 'aa')
+  t.is(p.position, 2)
+
+  p.resync('aaa')
+  t.is(p.text, 'aaa')
+  t.is(p.position, 3)
+})
+
+test('resync test remove mention', function (t) {
+  const firstMentionDisplay = {
+    type: DISPLAY_TYPES.MENTION,
+    start: 0,
+    end: 4,
+    length: 4,
+    memberId: 'member-id-0'
+  }
+  const secondMentionDisplay = {
+    type: DISPLAY_TYPES.MENTION,
+    start: 5,
+    end: 9,
+    length: 4,
+    memberId: 'member-id-0'
+  }
+
+  const p = new Parser({
+    onmention(mention) {
+      p.setMention(mention, '@bob', 'member-id-0')
+    }
+  })
+
+  p.resync('@b')
+  t.is(p.text, '@bob ')
+  t.is(p.position, 5)
+  t.alike(p.display, [firstMentionDisplay])
+
+  p.resync('@bob @bo')
+  t.is(p.text, '@bob @bob ')
+  t.is(p.position, 10)
+  t.alike(p.display, [firstMentionDisplay, secondMentionDisplay])
+
+  p.resync('@bob @bob hi')
+  t.is(p.text, '@bob @bob hi')
+  t.is(p.position, 12)
+  t.alike(p.display, [firstMentionDisplay, secondMentionDisplay])
+
+  p.resync('@bob hi')
+  t.is(p.text, '@bob hi')
+  t.is(p.position, 5)
+  t.alike(p.display, [firstMentionDisplay])
+})
+
+test('resync test modify mention', function (t) {
+  const p = new Parser({
+    onmention(mention) {
+      p.setMention(mention, '@bob', 'member-id-0')
+    }
+  })
+
+  p.resync('@b')
+  t.is(p.text, '@bob ')
+  t.is(p.position, 5)
+  t.alike(p.display, [
+    {
+      type: DISPLAY_TYPES.MENTION,
+      start: 0,
+      end: 4,
+      length: 4,
+      memberId: 'member-id-0'
+    }
+  ])
+
+  p.resync('x @bob ')
+  t.is(p.text, 'x @bob ')
+  t.is(p.position, 2)
+  t.alike(p.display, [
+    {
+      type: DISPLAY_TYPES.MENTION,
+      start: 2,
+      end: 6,
+      length: 4,
+      memberId: 'member-id-0'
+    }
+  ])
+})
+
+test('resync test middle modification', function (t) {
+  const p = new Parser()
+
+  p.resync('xaay')
+  t.is(p.text, 'xaay')
+  t.is(p.position, 4)
+  t.alike(p.display, [])
+
+  p.resync('xaaay')
+  t.is(p.text, 'xaaay')
+  t.is(p.position, 4)
+  t.alike(p.display, [])
+})
+
+test('resync test start modification', function (t) {
+  const p = new Parser()
+
+  p.resync('b')
+  t.is(p.text, 'b')
+  t.is(p.position, 1)
+  t.alike(p.display, [])
+
+  p.resync('ab')
+  t.is(p.text, 'ab')
+  t.is(p.position, 1)
+  t.alike(p.display, [])
+})
+
+test('resync test modify emoji', function (t) {
+  const firstEmojiDisplay = {
+    type: DISPLAY_TYPES.EMOJI,
+    start: 2,
+    end: 4,
+    content: 'grinning',
+    length: 2
+  }
+
+  const secondEmojiDisplay = {
+    type: DISPLAY_TYPES.EMOJI,
+    start: 5,
+    end: 7,
+    content: 'grinning',
+    length: 2
+  }
+
+  const p = new Parser({
+    ondefaultemoji: (word) => {
+      p.setEmoji(word, 'grinning', word, true)
+    }
+  })
+
+  p.resync('x 😀 😀 y')
+  t.is(p.text, 'x 😀 😀 y')
+  t.is(p.position, 9)
+  t.alike(p.display, [firstEmojiDisplay, secondEmojiDisplay])
+
+  p.resync('x 😀 y')
+  t.is(p.text, 'x 😀 y')
+  t.is(p.position, 5)
+  t.alike(p.display, [firstEmojiDisplay])
+})
+
+test('resync deleting one of two identical adjacent emojis keeps one display', function (t) {
+  const p = new Parser({
+    ondefaultemoji: (word) => {
+      if (word.length > 2) return
+      p.setEmoji(word, 'grinning', word, true)
+    }
+  })
+
+  p.resync('😀😀 ')
+  t.is(p.text, '😀😀 ')
+  t.alike(p.display, [])
+
+  p.resync('😀 ')
+  t.is(p.text, '😀 ')
+  t.is(p.position, 2)
+  t.alike(p.display, [
+    {
+      type: DISPLAY_TYPES.EMOJI,
+      start: 0,
+      end: 2,
+      content: 'grinning',
+      length: 2
+    }
+  ])
+})
+
+test('resync: manual pick 2 emojis, then manual delete 1st one using backspace', function (t) {
+  const emoji = (start, content) => ({
+    type: DISPLAY_TYPES.EMOJI,
+    start,
+    end: start + 2,
+    content,
+    length: 2
+  })
+
+  const p = new Parser({
+    ondefaultemoji: (word) => {
+      if (word === '😀') p.setEmoji(word, 'grinning', word, true)
+      if (word === '🚀') p.setEmoji(word, 'rocket', word, true)
+      if (word === '😃') p.setEmoji(word, 'smiley', word, true)
+    }
+  })
+
+  p.resync('😀')
+  t.is(p.text, '😀 ')
+  t.is(p.position, 3)
+  t.alike(p.display, [emoji(0, 'grinning')])
+
+  p.resync('😀 🚀')
+  t.is(p.text, '😀 🚀 ')
+  t.is(p.position, 6)
+  t.alike(p.display, [emoji(0, 'grinning'), emoji(3, 'rocket')])
+
+  p.resync('😀 🚀 😃')
+  t.is(p.text, '😀 🚀 😃 ')
+  t.is(p.position, 9)
+  t.alike(p.display, [
+    emoji(0, 'grinning'),
+    emoji(3, 'rocket'),
+    emoji(6, 'smiley')
+  ])
+
+  // remove 3 extra spaces that auto-added by parser
+  p.backspace()
+  p.setPosition(6)
+  p.backspace()
+  p.setPosition(3)
+  p.backspace()
+  t.is(p.text, '😀🚀😃')
+  t.alike(p.display, [
+    emoji(0, 'grinning'),
+    emoji(2, 'rocket'),
+    emoji(4, 'smiley')
+  ])
+
+  // remove 1st emoji
+  p.setPosition(2)
+  p.backspace()
+  t.is(p.text, '🚀😃')
+  t.is(p.position, 0)
+  t.alike(p.display, [emoji(0, 'rocket'), emoji(2, 'smiley')])
+})
+
+test('resync: manual pick 2 emojis, then manual delete 1st one using resync', function (t) {
+  const emoji = (start, content) => ({
+    type: DISPLAY_TYPES.EMOJI,
+    start,
+    end: start + 2,
+    content,
+    length: 2
+  })
+
+  const p = new Parser({
+    ondefaultemoji: (word) => {
+      if (word === '😀') p.setEmoji(word, 'grinning', word, true)
+      if (word === '🚀') p.setEmoji(word, 'rocket', word, true)
+      if (word === '😃') p.setEmoji(word, 'smiley', word, true)
+    }
+  })
+
+  p.resync('😀')
+  t.is(p.text, '😀 ')
+  t.is(p.position, 3)
+  t.alike(p.display, [emoji(0, 'grinning')])
+
+  p.resync('😀 🚀')
+  t.is(p.text, '😀 🚀 ')
+  t.is(p.position, 6)
+  t.alike(p.display, [emoji(0, 'grinning'), emoji(3, 'rocket')])
+
+  p.resync('😀 🚀 😃')
+  t.is(p.text, '😀 🚀 😃 ')
+  t.is(p.position, 9)
+  t.alike(p.display, [
+    emoji(0, 'grinning'),
+    emoji(3, 'rocket'),
+    emoji(6, 'smiley')
+  ])
+
+  // remove 3 extra spaces that auto-added by parser
+  p.backspace()
+  p.setPosition(6)
+  p.backspace()
+  p.setPosition(3)
+  p.backspace()
+  t.is(p.text, '😀🚀😃')
+  t.alike(p.display, [
+    emoji(0, 'grinning'),
+    emoji(2, 'rocket'),
+    emoji(4, 'smiley')
+  ])
+
+  // remove 1st emoji by resync
+  p.resync('🚀😃')
+  t.is(p.text, '🚀😃')
+  t.is(p.position, 0)
+  t.alike(p.display, [emoji(0, 'rocket'), emoji(2, 'smiley')])
+})
+
 test('0001', function (t) {
   const p = new Parser()
 
