@@ -351,7 +351,7 @@ test('resync test modify mention', function (t) {
   ])
 })
 
-test('resync test aaaaa', function (t) {
+test('resync test middle modification', function (t) {
   const p = new Parser()
 
   p.resync('xaay')
@@ -362,5 +362,19 @@ test('resync test aaaaa', function (t) {
   p.resync('xaaay')
   t.is(p.text, 'xaaay')
   t.is(p.position, 4)
+  t.alike(p.display, [])
+})
+
+test('resync test start modification', function (t) {
+  const p = new Parser()
+
+  p.resync('b')
+  t.is(p.text, 'b')
+  t.is(p.position, 1)
+  t.alike(p.display, [])
+
+  p.resync('ab')
+  t.is(p.text, 'ab')
+  t.is(p.position, 1)
   t.alike(p.display, [])
 })
