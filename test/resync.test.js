@@ -316,3 +316,37 @@ test('resync aaa ', function (t) {
   t.is(p.position, 5)
   t.alike(p.display, [firstMentionDisplay])
 })
+
+test('resync aaa ', function (t) {
+  const p = new Parser({
+    onmention(mention) {
+      p.setMention(mention, '@bob', 'member-id-0')
+    }
+  })
+
+  p.resync('@b')
+  t.is(p.text, '@bob ')
+  t.is(p.position, 5)
+  t.alike(p.display, [
+    {
+      type: DISPLAY_TYPES.MENTION,
+      start: 0,
+      end: 4,
+      length: 4,
+      memberId: 'member-id-0'
+    }
+  ])
+
+  p.resync('x @bob ')
+  t.is(p.text, 'x @bob ')
+  t.is(p.position, 2)
+  t.alike(p.display, [
+    {
+      type: DISPLAY_TYPES.MENTION,
+      start: 2,
+      end: 6,
+      length: 4,
+      memberId: 'member-id-0'
+    }
+  ])
+})
