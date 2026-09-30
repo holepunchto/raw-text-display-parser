@@ -281,8 +281,8 @@ test('resync mention at the start, before another mentioned', function (t) {
   ])
 
   p.resync('@a @alice ')
-  t.is(p.text, '@alice  @alice ')
-  t.is(p.position, 7)
+  t.is(p.text, '@alice @alice ')
+  t.is(p.position, 6)
   t.alike(p.display, [
     {
       type: DISPLAY_TYPES.MENTION,
@@ -293,8 +293,8 @@ test('resync mention at the start, before another mentioned', function (t) {
     },
     {
       type: DISPLAY_TYPES.MENTION,
-      start: 8,
-      end: 14,
+      start: 7,
+      end: 13,
       memberId: 'member-id-a',
       length: 6
     }

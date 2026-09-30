@@ -153,14 +153,14 @@ test('mixed type: type, then edit in the middle, at the start, at the end', (t) 
   assert(t, _text, _display)
 
   p.resync('hi 😀 @d https://docs.keet.io @alice @bob 🚀 ')
-  _text = 'hi 😀 @david  https://docs.keet.io @alice @bob 🚀 '
+  _text = 'hi 😀 @david https://docs.keet.io @alice @bob 🚀 '
   _display = [
     _display[0],
     display(6, '@david', MENTION, 'member-id-d'),
-    display(14, docsLink, HTTP_LINK),
-    display(35, '@alice', MENTION, 'member-id-a'),
-    display(42, '@bob', MENTION, 'member-id-b'),
-    display(47, 'rocket', EMOJI)
+    display(13, docsLink, HTTP_LINK),
+    display(34, '@alice', MENTION, 'member-id-a'),
+    display(41, '@bob', MENTION, 'member-id-b'),
+    display(46, 'rocket', EMOJI)
   ]
-  assert(t, _text, _display, 13)
+  assert(t, _text, _display, 12)
 })

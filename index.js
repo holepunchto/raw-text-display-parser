@@ -331,7 +331,8 @@ module.exports = class RawTextDisplayParser {
 
     if (input !== name) {
       this.selectRange(this.start, this.end)
-      this.appendText(`${name} `) // add trailing space//
+      const ensureTrailingSpace = !isEndWord(this.text[this.end])
+      this.appendText(`${name}${ensureTrailingSpace ? ' ' : ''}`)
     }
 
     const upd = {
