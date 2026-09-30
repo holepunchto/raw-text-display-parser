@@ -262,6 +262,45 @@ test('resync link list', function (t) {
   ])
 })
 
+test('resync mention at the start, before another mentioned', function (t) {
+  const p = new Parser({
+    onmention: (mention) => p.setMention(mention, '@alice', 'member-id-a')
+  })
+
+  p.resync('@a')
+  t.is(p.text, '@alice ')
+  t.is(p.position, 7)
+  t.alike(p.display, [
+    {
+      type: DISPLAY_TYPES.MENTION,
+      start: 0,
+      end: 6,
+      memberId: 'member-id-a',
+      length: 6
+    }
+  ])
+
+  p.resync('@a @alice ')
+  t.is(p.text, '@alice  @alice ')
+  t.is(p.position, 7)
+  t.alike(p.display, [
+    {
+      type: DISPLAY_TYPES.MENTION,
+      start: 0,
+      end: 6,
+      memberId: 'member-id-a',
+      length: 6
+    },
+    {
+      type: DISPLAY_TYPES.MENTION,
+      start: 8,
+      end: 14,
+      memberId: 'member-id-a',
+      length: 6
+    }
+  ])
+})
+
 test('resync: repeated character keeps the cursor at the end', function (t) {
   const p = new Parser()
 
@@ -626,4 +665,368 @@ test('resync deleting a multi-unit emoji whose prefix matches the next keeps the
       length: 2
     }
   ])
+})
+
+test('resync - insert at start', (t) => {
+  const p = new Parser({ text: 'world' })
+
+  p.resync('hello world')
+
+  t.is(p.text, 'hello world')
+  t.is(p.position, 6)
+})
+
+test('resync - insert in the middle', (t) => {
+  const p = new Parser({ text: 'hello world' })
+
+  p.resync('hello big world')
+
+  t.is(p.text, 'hello big world')
+  t.is(p.position, 10)
+})
+
+test('resync - insert at end', (t) => {
+  const p = new Parser({ text: 'hello' })
+
+  p.resync('hello world')
+
+  t.is(p.text, 'hello world')
+  t.is(p.position, 11)
+})
+
+test('resync - delete at start', (t) => {
+  const p = new Parser({ text: 'hello world' })
+
+  p.resync('world')
+
+  t.is(p.text, 'world')
+  t.is(p.position, 0)
+})
+
+test('resync - delete in the middle', (t) => {
+  const p = new Parser({ text: 'hello big world' })
+
+  p.resync('hello world')
+
+  t.is(p.text, 'hello world')
+  t.is(p.position, 6)
+})
+
+test('resync - delete at end', (t) => {
+  const p = new Parser({ text: 'hello world' })
+
+  p.resync('hello')
+
+  t.is(p.text, 'hello')
+  t.is(p.position, 5)
+})
+
+test('resync - replace at start', (t) => {
+  const p = new Parser({ text: 'hello world' })
+
+  p.resync('bye world')
+
+  t.is(p.text, 'bye world')
+  t.is(p.position, 3)
+})
+
+test('resync - replace in the middle', (t) => {
+  const p = new Parser({ text: 'hello big world' })
+
+  p.resync('hello small world')
+
+  t.is(p.text, 'hello small world')
+  t.is(p.position, 11)
+})
+
+test('resync - replace at end', (t) => {
+  const p = new Parser({ text: 'hello world' })
+
+  p.resync('hello there')
+
+  t.is(p.text, 'hello there')
+  t.is(p.position, 11)
+})
+
+const mention = (start, content) => ({
+  start,
+  end: start + content.length,
+  type: DISPLAY_TYPES.MENTION,
+  content
+})
+
+test('resync - insert before a display item shifts it', (t) => {
+  const p = new Parser({
+    text: '@alice and @bob hi',
+    display: [mention(0, '@alice'), mention(11, '@bob')]
+  })
+
+  p.resync('Hey @alice and @bob hi')
+
+  t.is(p.position, 4)
+  t.alike(p.display, [mention(4, '@alice'), mention(15, '@bob')])
+  t.is(p.text.slice(p.display[0].start, p.display[0].end), '@alice')
+  t.is(p.text.slice(p.display[1].start, p.display[1].end), '@bob')
+})
+
+test('resync - insert after a display item leaves it alone', (t) => {
+  const aliceMention = mention(0, '@alice')
+  const p = new Parser({ text: '@alice hi', display: [aliceMention] })
+
+  p.resync('@alice hi there')
+
+  t.is(p.position, 15)
+  t.alike(p.display, [aliceMention])
+})
+
+test('resync - delete before a display item shifts it back', (t) => {
+  const p = new Parser({
+    text: 'Hey @alice hi',
+    display: [mention(4, '@alice')]
+  })
+
+  p.resync('@alice hi')
+
+  t.is(p.position, 0)
+  t.alike(p.display, [mention(0, '@alice')])
+})
+
+test('resync - editing inside a display item removes it', (t) => {
+  const p = new Parser({ text: '@alice hi', display: [mention(0, '@alice')] })
+
+  p.resync('@alce hi')
+
+  t.is(p.text, '@alce hi')
+  t.is(p.position, 3)
+  t.alike(p.display, [])
+})
+
+test('resync - deleting a display item removes it', (t) => {
+  const p = new Parser({ text: '@alice hi', display: [mention(0, '@alice')] })
+
+  p.resync(' hi')
+
+  t.is(p.text, ' hi')
+  t.is(p.position, 0)
+  t.alike(p.display, [])
+})
+
+test('resync - only items after the edit shift', (t) => {
+  const aliceMention = mention(0, '@alice')
+  const p = new Parser({
+    text: '@alice and @bob and @david',
+    display: [aliceMention, mention(11, '@bob'), mention(20, '@david')]
+  })
+
+  p.resync('@alice there and @bob and @david')
+
+  t.is(p.position, 13)
+  t.alike(p.display, [aliceMention, mention(17, '@bob'), mention(26, '@david')])
+  t.is(p.text.slice(p.display[0].start, p.display[0].end), '@alice')
+  t.is(p.text.slice(p.display[1].start, p.display[1].end), '@bob')
+  t.is(p.text.slice(p.display[2].start, p.display[2].end), '@david')
+})
+
+test('resync - edit spanning two display items removes both', (t) => {
+  const p = new Parser({
+    text: '@alice and @bob',
+    display: [mention(0, '@alice'), mention(11, '@bob')]
+  })
+
+  p.resync('@alob')
+
+  t.is(p.text, '@alob')
+  t.is(p.position, 3)
+  t.alike(p.display, [])
+})
+
+test('resync - from empty text', (t) => {
+  const p = new Parser()
+
+  p.resync('hello')
+
+  t.is(p.text, 'hello')
+  t.is(p.position, 5)
+  t.alike(p.display, [])
+})
+
+test('resync - to empty text clears display', (t) => {
+  const p = new Parser({ text: '@alice hi', display: [mention(0, '@alice')] })
+
+  p.resync('')
+
+  t.is(p.text, '')
+  t.is(p.position, 0)
+  t.alike(p.display, [])
+})
+
+test('resync - replacing the whole text clears display', (t) => {
+  const p = new Parser({ text: '@alice hi', display: [mention(0, '@alice')] })
+
+  p.resync('bye')
+
+  t.is(p.text, 'bye')
+  t.is(p.position, 3)
+  t.alike(p.display, [])
+})
+
+test('resync - single character replace at start', (t) => {
+  const p = new Parser({ text: 'hello' })
+
+  p.resync('jello')
+
+  t.is(p.text, 'jello')
+  t.is(p.position, 1)
+})
+
+test('resync - single character replace at start mention', (t) => {
+  const p = new Parser({ text: '@alice hi', display: [mention(0, '@alice')] })
+
+  p.resync('j@alice hi')
+
+  t.is(p.text, 'j@alice hi')
+  t.is(p.position, 1)
+  t.alike(p.display, [mention(1, '@alice')])
+})
+
+test('resync - multi-line text', (t) => {
+  const p = new Parser({ text: 'hi\n@alice', display: [mention(3, '@alice')] })
+
+  p.resync('hi there\n@alice')
+
+  t.is(p.position, 8)
+  t.alike(p.display, [mention(9, '@alice')])
+  t.is(p.text.slice(9, 15), '@alice')
+})
+
+test('resync - insert immediately after an item leaves it alone', (t) => {
+  const aliceMention = mention(0, '@alice')
+  const p = new Parser({ text: '@alice hi', display: [aliceMention] })
+
+  p.resync('@alice, hi')
+
+  t.is(p.text, '@alice, hi')
+  t.is(p.position, 7)
+  t.alike(p.display, [aliceMention])
+})
+
+test('resync - delete the character right before an item shifts it back', (t) => {
+  const p = new Parser({ text: 'Hey @alice', display: [mention(4, '@alice')] })
+
+  p.resync('Hey@alice')
+
+  t.is(p.text, 'Hey@alice')
+  t.is(p.position, 3)
+  t.alike(p.display, [mention(3, '@alice')])
+})
+
+test('resync - delete the character right after an item leaves it alone', (t) => {
+  const p = new Parser({ text: '@alice hi', display: [mention(0, '@alice')] })
+
+  p.resync('@alicehi')
+
+  t.is(p.position, 6)
+  t.alike(p.display, [mention(0, '@alice')])
+})
+
+test('resync - deleting the first character of an item removes it', (t) => {
+  const p = new Parser({ text: '@alice hi', display: [mention(0, '@alice')] })
+
+  p.resync('alice hi')
+
+  t.is(p.text, 'alice hi')
+  t.is(p.position, 0)
+  t.alike(p.display, [])
+})
+
+test('resync - deleting the last character of an item removes it', (t) => {
+  const p = new Parser({ text: '@alice hi', display: [mention(0, '@alice')] })
+
+  p.resync('@alic hi')
+
+  t.is(p.text, '@alic hi')
+  t.is(p.position, 5)
+  t.alike(p.display, [])
+})
+
+test('resync - replace before an item shifts it by the length difference', (t) => {
+  const p = new Parser({ text: 'Hey @alice', display: [mention(4, '@alice')] })
+
+  p.resync('Yo @alice')
+
+  t.is(p.position, 2)
+  t.alike(p.display, [mention(3, '@alice')])
+})
+
+test('resync - insert between two adjacent items', (t) => {
+  const p = new Parser({
+    text: '@alice@bob',
+    display: [mention(0, '@alice'), mention(6, '@bob')]
+  })
+
+  p.resync('@alice - @bob')
+
+  t.is(p.position, 9)
+  t.alike(p.display, [mention(0, '@alice'), mention(9, '@bob')])
+})
+
+test('resync - consecutive edits keep items in sync', (t) => {
+  const p = new Parser({ text: '@alice', display: [mention(0, '@alice')] })
+
+  p.resync('a @alice')
+  t.is(p.position, 2)
+  t.alike(p.display, [mention(2, '@alice')])
+
+  p.resync('ab @alice')
+  t.is(p.position, 2)
+  t.alike(p.display, [mention(3, '@alice')])
+
+  p.resync('ab @alice!')
+  t.is(p.position, 10)
+  t.alike(p.display, [mention(3, '@alice')])
+})
+
+test('resync - mixed item types all shift together', (t) => {
+  const p = new Parser({
+    text: '@alice https://x.io 😀',
+    display: [
+      mention(0, '@alice'),
+      {
+        start: 7,
+        end: 19,
+        type: DISPLAY_TYPES.HTTP_LINK,
+        content: 'https://x.io',
+        length: 12
+      },
+      {
+        start: 20,
+        end: 22,
+        type: DISPLAY_TYPES.EMOJI,
+        content: '😀',
+        length: 2
+      }
+    ]
+  })
+
+  p.resync('ok @alice https://x.io 😀')
+
+  t.is(p.position, 3)
+  t.alike(p.display, [
+    mention(3, '@alice'),
+    {
+      start: 10,
+      end: 22,
+      type: DISPLAY_TYPES.HTTP_LINK,
+      content: 'https://x.io',
+      length: 12
+    },
+    {
+      start: 23,
+      end: 25,
+      type: DISPLAY_TYPES.EMOJI,
+      content: '😀',
+      length: 2
+    }
+  ])
+  for (const d of p.display) t.is(p.text.slice(d.start, d.end), d.content)
 })

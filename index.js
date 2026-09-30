@@ -108,22 +108,19 @@ module.exports = class RawTextDisplayParser {
   }
 
   _fireAllWords() {
-    const text = this.text
-    const len = text.length
-
     let start = 0
-    while (start < len) {
-      while (start < len && isEndWord(text[start])) start++
-      if (start >= len) break
+    while (start < this.text.length) {
+      while (start < this.text.length && isEndWord(this.text[start])) start++
+      if (start >= this.text.length) break
 
       let end = start
-      while (end < len && !isEndWord(text[end])) end++
+      while (end < this.text.length && !isEndWord(this.text[end])) end++
 
       const alreadyCovered = this.display.some(
         (d) => d.start <= start && d.end >= end
       )
       if (!alreadyCovered)
-        this._dispatchWord(text.slice(start, end), start, end)
+        this._dispatchWord(this.text.slice(start, end), start, end)
 
       start = end
     }
@@ -293,7 +290,7 @@ module.exports = class RawTextDisplayParser {
       this.appendText(emoji)
     } else if (input !== code) {
       this.selectRange(this.start, this.end)
-      this.appendText(`${code} `)
+      this.appendText(`${code} `) //
     }
 
     const length = emoji ? emoji.length : code.length
@@ -334,7 +331,7 @@ module.exports = class RawTextDisplayParser {
 
     if (input !== name) {
       this.selectRange(this.start, this.end)
-      this.appendText(`${name} `) // add trailing space
+      this.appendText(`${name} `) // add trailing space//
     }
 
     const upd = {
