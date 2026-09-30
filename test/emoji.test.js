@@ -29,7 +29,7 @@ test('setEmoji normally', (t) => {
   const success2 = p.setEmoji(':kee', ':keet_party:')
 
   t.ok(success2)
-  t.is(p.text, ':keet_party:  :smile: ')
+  t.is(p.text, ':keet_party: :smile: ')
   t.alike(p.display, [
     {
       type: DISPLAY_TYPES.EMOJI,
@@ -40,8 +40,8 @@ test('setEmoji normally', (t) => {
     },
     {
       type: DISPLAY_TYPES.EMOJI,
-      start: 14,
-      end: 21,
+      start: 13,
+      end: 20,
       content: 'smile',
       length: 7
     }
@@ -378,6 +378,45 @@ test('ondefaultemoji reuses an existing space after the emoji', (t) => {
       end: 2 + '😀'.length,
       content: 'grinning',
       length: '😀'.length
+    }
+  ])
+})
+
+test('emoji at the start, before another emoji-ed', function (t) {
+  const p = new Parser({
+    onemoji: (emoji) => p.setEmoji(emoji, ':keet_party:')
+  })
+
+  p.resync(':ke')
+  t.is(p.text, ':keet_party: ')
+  t.is(p.position, 13)
+  t.alike(p.display, [
+    {
+      type: DISPLAY_TYPES.EMOJI,
+      start: 0,
+      end: 12,
+      content: 'keet_party',
+      length: 12
+    }
+  ])
+
+  p.resync(':kee :keet_party: ')
+  t.is(p.text, ':keet_party: :keet_party: ')
+  t.is(p.position, 12)
+  t.alike(p.display, [
+    {
+      type: DISPLAY_TYPES.EMOJI,
+      start: 0,
+      end: 12,
+      content: 'keet_party',
+      length: 12
+    },
+    {
+      type: DISPLAY_TYPES.EMOJI,
+      start: 13,
+      end: 25,
+      content: 'keet_party',
+      length: 12
     }
   ])
 })

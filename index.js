@@ -290,7 +290,8 @@ module.exports = class RawTextDisplayParser {
       this.appendText(emoji)
     } else if (input !== code) {
       this.selectRange(this.start, this.end)
-      this.appendText(`${code} `) //
+      const ensureTrailingSpace = !isEndWord(this.text[this.end])
+      this.appendText(`${code}${ensureTrailingSpace ? ' ' : ''}`)
     }
 
     const length = emoji ? emoji.length : code.length

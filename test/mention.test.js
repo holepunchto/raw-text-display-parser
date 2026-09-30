@@ -323,3 +323,42 @@ test('mention the name that contain space and default-emoji', (t) => {
   t.is(mentionCalled, 3)
   t.is(lastWord, '@dinh')
 })
+
+test('mention at the start, before another mentioned', function (t) {
+  const p = new Parser({
+    onmention: (mention) => p.setMention(mention, '@alice', 'member-id-a')
+  })
+
+  p.resync('@a')
+  t.is(p.text, '@alice ')
+  t.is(p.position, 7)
+  t.alike(p.display, [
+    {
+      type: DISPLAY_TYPES.MENTION,
+      start: 0,
+      end: 6,
+      memberId: 'member-id-a',
+      length: 6
+    }
+  ])
+
+  p.resync('@a @alice ')
+  t.is(p.text, '@alice @alice ')
+  t.is(p.position, 6)
+  t.alike(p.display, [
+    {
+      type: DISPLAY_TYPES.MENTION,
+      start: 0,
+      end: 6,
+      memberId: 'member-id-a',
+      length: 6
+    },
+    {
+      type: DISPLAY_TYPES.MENTION,
+      start: 7,
+      end: 13,
+      memberId: 'member-id-a',
+      length: 6
+    }
+  ])
+})
