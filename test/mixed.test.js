@@ -12,6 +12,10 @@ const p = new Parser({
     if (mention.startsWith('@b')) p.setMention(mention, '@bob', 'member-id-b')
     if (mention.startsWith('@d')) p.setMention(mention, '@david', 'member-id-d')
   },
+  onemoji: (emoji) => {
+    if (emoji.startsWith(':smi')) p.setEmoji(emoji, ':smile:', '😄')
+    if (emoji.startsWith(':keet')) p.setEmoji(':keet', ':keet_party:')
+  },
   ondefaultemoji: (emoji) => {
     if (emoji === '😀') p.setEmoji(emoji, 'grinning', emoji, true)
     if (emoji === '🚀') p.setEmoji(emoji, 'rocket', emoji, true)
@@ -27,11 +31,17 @@ const assert = (_t, _text, _display, _position) => {
 }
 
 const display = (start, content, type, extra) => {
-  const length = type === EMOJI ? 2 : content.length
+  const length =
+    type === EMOJI
+      ? content.startsWith('keet')
+        ? content.length + 2
+        : 2
+      : content.length
+
   const object = {
     start,
     end: start + length,
-    type: type,
+    type,
     length
   }
 
@@ -94,8 +104,39 @@ test('mixed type: insert in the middle emoji remove it', (t) => {
   p.resync('😀')
   assert(t, '😀 ', [display(0, 'grinning', EMOJI)])
 
-  p.resync('x ')
-  assert(t, 'x ', [], 1)
+  p.resync(':smi 😀 ')
+  assert(
+    t,
+    '😄 😀 ',
+    [display(0, 'smile', EMOJI), display(3, 'grinning', EMOJI)],
+    2
+  )
+
+  p.resync(':keet 😄 😀 ')
+  assert(
+    t,
+    ':keet_party: 😄 😀 ',
+    [
+      display(0, 'keet_party', EMOJI),
+      display(13, 'smile', EMOJI),
+      display(16, 'grinning', EMOJI)
+    ],
+    12
+  )
+
+  p.resync(':keetx_party: 😄 😀 ')
+  assert(
+    t,
+    ':keetx_party: 😄 😀 ',
+    [display(14, 'smile', EMOJI), display(17, 'grinning', EMOJI)],
+    6
+  )
+
+  p.resync(':keetx_party: x 😀 ')
+  assert(t, ':keetx_party: x 😀 ', [display(16, 'grinning', EMOJI)], 15)
+
+  p.resync(':keetx_party: x x ')
+  assert(t, ':keetx_party: x x ', [], 17)
 })
 
 test('mixed type: type, then edit in the middle, at the start, at the end', (t) => {
