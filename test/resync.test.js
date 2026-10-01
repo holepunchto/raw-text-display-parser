@@ -991,3 +991,34 @@ test('resync - mixed item types all shift together', (t) => {
   ])
   for (const d of p.display) t.is(p.text.slice(d.start, d.end), d.content)
 })
+
+test('resync insert mention in the middle', function (t) {
+  const emojiDisplay = {
+    start: 0,
+    end: 7,
+    length: 7,
+    type: DISPLAY_TYPES.EMOJI,
+    content: 'smile'
+  }
+
+  const p = new Parser({
+    text: ':smile:x',
+    display: [emojiDisplay],
+    onmention: (mention) => p.setMention(mention, '@bob', 'member-id')
+  })
+
+  p.resync(':smile: @bo x')
+
+  t.is(p.text, ':smile: @bob x')
+  t.is(p.position, 12)
+  t.alike(p.display, [
+    emojiDisplay,
+    {
+      start: 8,
+      end: 12,
+      length: 4,
+      type: DISPLAY_TYPES.MENTION,
+      memberId: 'member-id'
+    }
+  ])
+})
