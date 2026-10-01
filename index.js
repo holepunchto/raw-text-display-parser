@@ -119,10 +119,12 @@ module.exports = class RawTextDisplayParser {
       const alreadyCovered = this.display.some(
         (d) => d.start <= start && d.end >= end
       )
-      if (!alreadyCovered)
+      if (!alreadyCovered) {
         this._dispatchWord(this.text.slice(start, end), start, end)
-
-      start = end
+        start = this.end
+      } else {
+        start = end
+      }
     }
 
     this._updateWord()

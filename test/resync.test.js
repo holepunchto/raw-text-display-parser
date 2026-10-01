@@ -1022,3 +1022,30 @@ test('resync insert mention in the middle', function (t) {
     }
   ])
 })
+
+test('resync dispatches words after an emoji that shrinks the text', function (t) {
+  const p = new Parser({
+    onemoji: (emoji) => p.setEmoji(emoji, ':smile:', '😄'),
+    onmention: (mention) => p.setMention(mention, '@bob', 'member-id')
+  })
+
+  p.resync(':smile: @bo x')
+
+  t.is(p.text, '😄 @bob x')
+  t.alike(p.display, [
+    {
+      type: DISPLAY_TYPES.EMOJI,
+      start: 0,
+      end: 2,
+      content: 'smile',
+      length: 2
+    },
+    {
+      type: DISPLAY_TYPES.MENTION,
+      start: 3,
+      end: 7,
+      length: 4,
+      memberId: 'member-id'
+    }
+  ])
+})
