@@ -93,7 +93,7 @@ test('apply two mentions, then remove 1st one, then reapply it', function (t) {
   p.backspace()
   p.setMention('@u', '@user1 name end', '001')
 
-  t.is(p.text, '00 @user1 name end  name end 111 @user2 nameee end ')
+  t.is(p.text, '00 @user1 name end name end 111 @user2 nameee end ')
   t.is(p.text.slice(p.display[0].start, p.display[0].end), '@user1 name end')
   t.is(p.text.slice(p.display[1].start, p.display[1].end), '@user2 nameee end')
 
@@ -107,8 +107,8 @@ test('apply two mentions, then remove 1st one, then reapply it', function (t) {
     },
     {
       type: DISPLAY_TYPES.MENTION,
-      start: 33,
-      end: 50,
+      start: 32,
+      end: 49,
       length: 17,
       memberId: '002'
     }
@@ -234,7 +234,7 @@ test('setMention 1st time then go to start setMention 2nd time', (t) => {
 
   const success2 = p.setMention('@', '@nice', '2')
   t.ok(success2)
-  t.is(p.text, '@nice  @nice ')
+  t.is(p.text, '@nice @nice ')
   t.is(p.text.slice(p.display[0].start, p.display[0].end), '@nice')
   t.alike(p.display, [
     {
@@ -246,8 +246,8 @@ test('setMention 1st time then go to start setMention 2nd time', (t) => {
     },
     {
       type: DISPLAY_TYPES.MENTION,
-      start: 7,
-      end: 12,
+      start: 6,
+      end: 11,
       length: 5,
       memberId: '1'
     }
@@ -322,4 +322,43 @@ test('mention the name that contain space and default-emoji', (t) => {
   p.resync('@dinh 🟢 @dinh text only @dinh')
   t.is(mentionCalled, 3)
   t.is(lastWord, '@dinh')
+})
+
+test('mention at the start, before another mentioned', function (t) {
+  const p = new Parser({
+    onmention: (mention) => p.setMention(mention, '@alice', 'member-id-a')
+  })
+
+  p.resync('@a')
+  t.is(p.text, '@alice ')
+  t.is(p.position, 7)
+  t.alike(p.display, [
+    {
+      type: DISPLAY_TYPES.MENTION,
+      start: 0,
+      end: 6,
+      memberId: 'member-id-a',
+      length: 6
+    }
+  ])
+
+  p.resync('@a @alice ')
+  t.is(p.text, '@alice @alice ')
+  t.is(p.position, 6)
+  t.alike(p.display, [
+    {
+      type: DISPLAY_TYPES.MENTION,
+      start: 0,
+      end: 6,
+      memberId: 'member-id-a',
+      length: 6
+    },
+    {
+      type: DISPLAY_TYPES.MENTION,
+      start: 7,
+      end: 13,
+      memberId: 'member-id-a',
+      length: 6
+    }
+  ])
 })
