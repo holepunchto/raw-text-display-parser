@@ -362,3 +362,39 @@ test('mention at the start, before another mentioned', function (t) {
     }
   ])
 })
+
+test('mention at the start, before another mentioned and text', function (t) {
+  const p = new Parser({
+    text: '7777@alice ',
+    display: [
+      {
+        type: DISPLAY_TYPES.MENTION,
+        start: 4,
+        end: 10,
+        memberId: 'member-id-a',
+        length: 6
+      }
+    ],
+    onmention: (mention) => p.setMention(mention, '@alice', 'member-id-a')
+  })
+
+  p.resync('@a 7777@alice ')
+  t.is(p.text, '@alice 7777@alice ')
+  t.is(p.position, 6)
+  t.alike(p.display, [
+    {
+      type: DISPLAY_TYPES.MENTION,
+      start: 0,
+      end: 6,
+      memberId: 'member-id-a',
+      length: 6
+    },
+    {
+      type: DISPLAY_TYPES.MENTION,
+      start: 11,
+      end: 17,
+      memberId: 'member-id-a',
+      length: 6
+    }
+  ])
+})
