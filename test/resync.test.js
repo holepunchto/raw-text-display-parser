@@ -709,11 +709,12 @@ test('resync - replace at end', (t) => {
   t.is(p.position, 11)
 })
 
-const mention = (start, content) => ({
+const mention = (start, content, memberId) => ({
   start,
   end: start + content.length,
   type: DISPLAY_TYPES.MENTION,
-  content
+  memberId,
+  length: content.length
 })
 
 test('resync - insert before a display item shifts it', (t) => {
@@ -991,7 +992,8 @@ test('resync - mixed item types all shift together', (t) => {
       length: 2
     }
   ])
-  for (const d of p.display) t.is(p.text.slice(d.start, d.end), d.content)
+  for (const d of p.display)
+    d.content && t.is(p.text.slice(d.start, d.end), d.content)
 })
 
 test('resync insert mention in the middle', function (t) {
@@ -1100,4 +1102,21 @@ test('resync keeps the cursor on the new line after enter at the end of a line',
       memberId: 'member-id'
     }
   ])
+})
+
+test('resync keeps the cursor on the start of a selected range', function (t) {
+  const p = new Parser({
+    onmention: (mention) => p.setMention(mention, '@bob')
+  })
+
+  p.resync('a\n@bo')
+  t.is(p.text, 'a\n@bob ')
+  t.is(p.position, 7)
+  t.alike(p.display, [mention(2, '@bob')])
+
+  p.selectRange(0, 2)
+  p.resync('@bob ')
+  t.is(p.text, '@bob ')
+  t.is(p.position, 0)
+  t.alike(p.display, [mention(0, '@bob')])
 })
