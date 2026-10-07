@@ -2,7 +2,7 @@ const test = require('brittle')
 
 const Parser = require('..')
 const { DISPLAY_TYPES } = require('@holepunchto/keet-core-api')
-const { HTTP_LINK, MENTION, UNORDERED_LIST } = DISPLAY_TYPES
+const { HTTP_LINK, MENTION, EMOJI, UNORDERED_LIST } = DISPLAY_TYPES
 
 const unorderedListDisplay = (start) => ({
   start,
@@ -39,6 +39,33 @@ test('list general case', (t) => {
     { start: 2, end: 13, content: 'http://a.io', length: 11, type: HTTP_LINK },
     unorderedListDisplay(14)
   ])
+})
+
+test('a line that only starts with a bullet but has no entry is not an item', (t) => {
+  const p = new Parser({
+    text: '• a',
+    display: [],
+    onlist: (start, end, type) => p.setList(start, end, type)
+  })
+
+  p.resync('• a\n')
+  t.is(p.text, '• a\n')
+  t.is(p.position, 4)
+  t.alike(p.display, [])
+})
+
+test('enter before the start of the first item adds a plain line above it', (t) => {
+  const p = new Parser({
+    text: '• a',
+    display: [unorderedListDisplay(0)],
+    onlist: (start, end, type) => p.setList(start, end, type)
+  })
+
+  p.setPosition(0)
+  p.resync('\n• a')
+  t.is(p.text, '\n• a')
+  t.is(p.position, 1)
+  t.alike(p.display, [unorderedListDisplay(1)])
 })
 
 test('list mark only converts at the start of a line', (t) => {
@@ -248,4 +275,120 @@ test('list end with empty item and backspace', (t) => {
   t.is(p.text, '• a\n\n• b')
   t.is(p.position, 4)
   t.alike(p.display, [unorderedListDisplay(0), unorderedListDisplay(5)])
+})
+
+test('backspace on the only item empties the text', (t) => {
+  const p = new Parser({
+    text: '• ',
+    display: [unorderedListDisplay(0)],
+    onlist: (start, end, type) => p.setList(start, end, type)
+  })
+
+  p.setPosition(2)
+  p.resync('•')
+  t.is(p.text, '')
+  t.is(p.position, 0)
+  t.alike(p.display, [])
+})
+
+test('list lifecycle with a mention and a link inside items', (t) => {
+  const p = new Parser({
+    onlist: (start, end, type) => p.setList(start, end, type),
+    onmention: (mention) => p.setMention(mention, '@bob', 'member-id'),
+    onlink: (link) => p.setLink(link, link)
+  })
+
+  p.resync('- ')
+  p.resync('• @bo')
+  t.is(p.text, '• @bob ')
+  t.alike(p.display, [
+    unorderedListDisplay(0),
+    { type: MENTION, start: 2, end: 6, length: 4, memberId: 'member-id' }
+  ])
+
+  p.resync('• @bob \n')
+  t.is(p.text, '• @bob \n• ')
+  t.is(p.position, 10)
+
+  p.resync('• @bob \n• http://a.io')
+  t.alike(p.display, [
+    unorderedListDisplay(0),
+    { type: MENTION, start: 2, end: 6, length: 4, memberId: 'member-id' },
+    unorderedListDisplay(8),
+    { type: HTTP_LINK, start: 10, end: 21, content: 'http://a.io', length: 11 }
+  ])
+
+  p.resync('• @bob \n• http://a.io\n')
+  t.is(p.text, '• @bob \n• http://a.io\n• ')
+  t.is(p.position, 24)
+
+  p.resync('• @bob \n• http://a.io\n• \n')
+  t.is(p.text, '• @bob \n• http://a.io\n')
+  t.is(p.position, 22)
+
+  p.resync('• @bob \n• http://a.io\nx')
+  t.is(p.text, '• @bob \n• http://a.io\nx')
+  t.is(p.position, 23)
+  t.alike(p.display, [
+    unorderedListDisplay(0),
+    { type: MENTION, start: 2, end: 6, length: 4, memberId: 'member-id' },
+    unorderedListDisplay(8),
+    { type: HTTP_LINK, start: 10, end: 21, content: 'http://a.io', length: 11 }
+  ])
+})
+
+test('editing in the middle of a list with an emoji item', (t) => {
+  const p = new Parser({
+    onlist: (start, end, type) => p.setList(start, end, type),
+    onemoji: (emoji) => p.setEmoji(emoji, ':smile:', '😄')
+  })
+
+  p.resync('* ')
+  p.resync('• :smile:')
+  t.is(p.text, '• 😄')
+  t.alike(p.display, [
+    unorderedListDisplay(0),
+    { type: EMOJI, start: 2, end: 4, content: 'smile', length: 2 }
+  ])
+
+  p.resync('• 😄\n')
+  p.resync('• 😄\n• b')
+  t.is(p.text, '• 😄\n• b')
+
+  // enter at the end of the first item inserts an item between the two
+  p.setPosition(4)
+  p.resync('• 😄\n\n• b')
+  t.is(p.text, '• 😄\n• \n• b')
+  t.is(p.position, 7)
+  t.alike(p.display, [
+    unorderedListDisplay(0),
+    { type: EMOJI, start: 2, end: 4, content: 'smile', length: 2 },
+    unorderedListDisplay(5),
+    unorderedListDisplay(8)
+  ])
+
+  // backspace on that empty item removes its marker
+  p.setPosition(7)
+  p.resync('• 😄\n•\n• b')
+  t.is(p.text, '• 😄\n\n• b')
+  t.is(p.position, 5)
+  t.alike(p.display, [
+    unorderedListDisplay(0),
+    { type: EMOJI, start: 2, end: 4, content: 'smile', length: 2 },
+    unorderedListDisplay(6)
+  ])
+
+  // typing `- ` on that empty line makes it an item again
+  p.setPosition(5)
+  p.resync('• 😄\n-\n• b')
+  p.setPosition(6)
+  p.resync('• 😄\n- \n• b')
+  t.is(p.text, '• 😄\n• \n• b')
+  t.is(p.position, 7)
+  t.alike(p.display, [
+    unorderedListDisplay(0),
+    { type: EMOJI, start: 2, end: 4, content: 'smile', length: 2 },
+    unorderedListDisplay(5),
+    unorderedListDisplay(8)
+  ])
 })
