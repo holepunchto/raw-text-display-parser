@@ -226,7 +226,31 @@ module.exports = class RawTextDisplayParser {
     }
   }
 
+  _removeText(start, end) {
+    const position = this.position
+
+    this.selectRange(start, end)
+    this.appendText('')
+
+    if (position <= start) this.position = position
+    else if (position > end) this.position = position - (end - start)
+
+    this._updateWord()
+  }
+
   _fireList(inserted) {
+    // a marker that is no longer at the start of a line is not an item anymore
+    for (let i = this.display.length - 1; i >= 0; i--) {
+      const d = this.display[i]
+      if (
+        d.type === DISPLAY_TYPES.UNORDERED_LIST &&
+        d.start > 0 &&
+        this.text[d.start - 1] !== '\n'
+      ) {
+        this._removeText(d.start, d.end)
+      }
+    }
+
     const lineStart = getLineStart(this.text, this.position)
     const line = this.text.slice(lineStart, this.position)
 
@@ -236,8 +260,7 @@ module.exports = class RawTextDisplayParser {
 
     // backspace on an empty item ends the list: drop its marker
     if (line === UnorderedListMark.trim()) {
-      this.selectRange(lineStart, this.position)
-      return this.appendText('')
+      return this._removeText(lineStart, this.position)
     }
 
     if (inserted !== '\n') return
@@ -254,8 +277,7 @@ module.exports = class RawTextDisplayParser {
     const atLineEnd =
       this.position === this.text.length || this.text[this.position] === '\n'
     if (item.end === lineStart - 1 && atLineEnd) {
-      this.selectRange(item.start, this.position)
-      return this.appendText('')
+      return this._removeText(item.start, this.position)
     }
 
     this.onlist(this.position, this.position, item.type)

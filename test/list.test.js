@@ -389,3 +389,125 @@ test('backspace at the start of an item body removes its marker', (t) => {
   t.is(p.position, 0)
   t.alike(p.display, [])
 })
+
+test('backspace joining two items drops the second marker', (t) => {
+  const p = makeParser({ text: '• a\n• b', display: [0, 4] })
+
+  p.setPosition(4)
+  p.resync('• a• b')
+  t.is(p.text, '• ab')
+  t.is(p.position, 3)
+  t.alike(p.display, [unorderedListDisplay(0)])
+})
+
+test('forward delete joining two items drops the second marker', (t) => {
+  const p = makeParser({ text: '• a\n• b', display: [0, 4] })
+
+  p.selectRange(3, 4)
+  p.resync('• a• b')
+  t.is(p.text, '• ab')
+  t.is(p.position, 3)
+  t.alike(p.display, [unorderedListDisplay(0)])
+})
+
+test('joining a plain line and an item drops the marker', (t) => {
+  const p = makeParser({ text: 'x\n• a', display: [2] })
+
+  p.setPosition(2)
+  p.resync('x• a')
+  t.is(p.text, 'xa')
+  t.is(p.position, 1)
+  t.alike(p.display, [])
+})
+
+test('typing before the bullet drops the marker', (t) => {
+  const p = makeParser({ text: '• a', display: [0] })
+
+  p.setPosition(0)
+  p.resync('x• a')
+  t.is(p.text, 'xa')
+  t.is(p.position, 1)
+  t.alike(p.display, [])
+})
+
+test('backspace in the middle of the bullet drops the marker', (t) => {
+  const p = makeParser({ text: '• a', display: [0] })
+
+  p.setPosition(1)
+  p.resync('•a')
+  t.is(p.text, 'a')
+  t.is(p.position, 0)
+  t.alike(p.display, [])
+})
+
+test('several stray markers, dropped middle, others and cursor kept', (t) => {
+  const p = makeParser({ text: '• a\n• b\n• c', display: [0, 4, 8] })
+
+  p.setPosition(6)
+  p.resync('• a\n•b\n• c')
+  t.is(p.text, '• a\nb\n• c')
+  t.is(p.position, 4)
+  t.alike(p.display, [unorderedListDisplay(0), unorderedListDisplay(6)])
+})
+
+test('enter on a whitespace-only item continues the list', (t) => {
+  const p = makeParser({})
+
+  p.resync('- ')
+  t.is(p.text, '• ')
+  t.is(p.position, 2)
+  t.alike(p.display, [unorderedListDisplay(0)])
+
+  p.resync('•  ')
+  t.is(p.text, '•  ')
+  t.is(p.position, 3)
+  t.alike(p.display, [unorderedListDisplay(0)])
+
+  p.resync('•  \n')
+  t.is(p.text, '•  \n• ')
+  t.is(p.position, 6)
+  t.alike(p.display, [unorderedListDisplay(0), unorderedListDisplay(4)])
+})
+
+test('enter on a whitespace-only item in the middle keeps the all items', (t) => {
+  const p = makeParser({ text: '• a\n•  \n• b', display: [0, 4, 8] })
+
+  p.setPosition(7)
+  p.resync('• a\n•  \n\n• b')
+  t.is(p.text, '• a\n•  \n• \n• b')
+  t.is(p.position, 10)
+  t.alike(p.display, [
+    unorderedListDisplay(0),
+    unorderedListDisplay(4),
+    unorderedListDisplay(8),
+    unorderedListDisplay(11)
+  ])
+})
+
+test('enter replacing a selection inside an item continues the list', (t) => {
+  const p = makeParser({})
+
+  p.resync('- ')
+  p.resync('• ab')
+  p.selectRange(2, 4)
+  p.resync('• cd')
+  t.is(p.text, '• cd')
+  t.is(p.position, 4)
+  t.alike(p.display, [unorderedListDisplay(0)])
+
+  p.selectRange(3, 4)
+  p.resync('• c\n')
+  t.is(p.text, '• c\n• ')
+  t.is(p.position, 6)
+  t.alike(p.display, [unorderedListDisplay(0), unorderedListDisplay(4)])
+})
+
+test('enter at the start of an item body splits it into an empty item and the item', (t) => {
+  const p = makeParser({ text: '• a', display: [0] })
+
+  p.setPosition(2)
+  p.resync('• \na')
+  t.is(p.text, '• \n• a')
+  t.is(p.position, 5)
+  t.alike(p.display, [unorderedListDisplay(0), unorderedListDisplay(3)])
+})
