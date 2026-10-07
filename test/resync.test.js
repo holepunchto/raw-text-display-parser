@@ -934,6 +934,7 @@ test('resync - insert between two adjacent items', (t) => {
 test('resync - consecutive edits keep items in sync', (t) => {
   const p = new Parser({ text: '@alice', display: [mention(0, '@alice')] })
 
+  p.setPosition(0)
   p.resync('a @alice')
   t.is(p.position, 2)
   t.alike(p.display, [mention(2, '@alice')])
@@ -942,6 +943,7 @@ test('resync - consecutive edits keep items in sync', (t) => {
   t.is(p.position, 2)
   t.alike(p.display, [mention(3, '@alice')])
 
+  p.setPosition(9)
   p.resync('ab @alice!')
   t.is(p.position, 10)
   t.alike(p.display, [mention(3, '@alice')])
@@ -1040,6 +1042,56 @@ test('resync dispatches words after an emoji that shrinks the text', function (t
       content: 'smile',
       length: 2
     },
+    {
+      type: DISPLAY_TYPES.MENTION,
+      start: 3,
+      end: 7,
+      length: 4,
+      memberId: 'member-id'
+    }
+  ])
+})
+
+test('resync places an insert at the cursor inside a run of identical characters', function (t) {
+  const p = new Parser({
+    onmention: (mention) => p.setMention(mention, '@bob', 'member-id')
+  })
+
+  p.resync('aa @bo')
+  t.is(p.text, 'aa @bob ')
+
+  p.setPosition(1)
+  p.resync('aaa @bob ')
+
+  t.is(p.text, 'aaa @bob ')
+  t.is(p.position, 2)
+  t.is(p.word, 'aaa')
+  t.alike(p.display, [
+    {
+      type: DISPLAY_TYPES.MENTION,
+      start: 4,
+      end: 8,
+      length: 4,
+      memberId: 'member-id'
+    }
+  ])
+})
+
+test('resync keeps the cursor on the new line after enter at the end of a line', function (t) {
+  const p = new Parser({
+    onmention: (mention) => p.setMention(mention, '@bob', 'member-id')
+  })
+
+  p.resync('a\n@bo')
+  t.is(p.text, 'a\n@bob ')
+
+  p.setPosition(1)
+  p.resync('a\n\n@bob ')
+
+  t.is(p.text, 'a\n\n@bob ')
+  t.is(p.position, 2)
+  t.is(p.word, '')
+  t.alike(p.display, [
     {
       type: DISPLAY_TYPES.MENTION,
       start: 3,

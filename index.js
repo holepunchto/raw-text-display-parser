@@ -244,7 +244,7 @@ module.exports = class RawTextDisplayParser {
   }
 
   resync(text) {
-    const shared = Math.min(this.text.length, text.length)
+    const shared = Math.min(this.text.length, text.length, this.position)
     const display = []
 
     let end = 0

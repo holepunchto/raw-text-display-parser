@@ -137,3 +137,30 @@ test('list continues on a new line', (t) => {
     unorderedListDisplay(10)
   ])
 })
+
+test('list continues on a new line in the middle', (t) => {
+  const p = new Parser({
+    onlist: (start, end, type) => p.setList(start, end, type)
+  })
+
+  p.resync('- ')
+  t.is(p.text, '• ')
+  t.is(p.position, 2)
+  t.alike(p.display, [unorderedListDisplay(0)])
+
+  p.resync('• a\n- ')
+  t.is(p.text, '• a\n• ')
+  t.is(p.position, 6)
+  t.alike(p.display, [unorderedListDisplay(0), unorderedListDisplay(4)])
+
+  p.resync('• a\n• b')
+  p.setPosition(3)
+  p.resync('• a\n\n• b')
+  t.is(p.text, '• a\n• \n• b')
+  t.is(p.position, 6)
+  t.alike(p.display, [
+    unorderedListDisplay(0),
+    unorderedListDisplay(4),
+    unorderedListDisplay(7)
+  ])
+})
