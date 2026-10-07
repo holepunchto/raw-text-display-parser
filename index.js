@@ -242,7 +242,7 @@ module.exports = class RawTextDisplayParser {
 
     if (inserted !== '\n') return
 
-    // enter pressed on a list item continues the list on the new line
+    // enter on a list item continues the list on the new line
     const prevStart = getLineStart(this.text, lineStart - 1)
     const item = this.display.find(
       (d) => d.start === prevStart && d.type === DISPLAY_TYPES.UNORDERED_LIST
@@ -252,8 +252,7 @@ module.exports = class RawTextDisplayParser {
     // enter on an empty item ends the list: drop its marker and the newline
     if (item.end === lineStart - 1) {
       this.selectRange(item.start, this.position)
-      this.appendText('')
-      return
+      return this.appendText('')
     }
 
     this.onlist(this.position, this.position, item.type)
