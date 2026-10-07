@@ -240,7 +240,16 @@ module.exports = class RawTextDisplayParser {
     const item = this.display.find(
       (d) => d.start === prevStart && d.type === DISPLAY_TYPES.UNORDERED_LIST
     )
-    if (item) this.onlist(this.position, this.position, item.type)
+    if (!item) return
+
+    // enter on an empty item ends the list: drop its marker and the newline
+    if (item.end === lineStart - 1) {
+      this.selectRange(item.start, this.position)
+      this.appendText('')
+      return
+    }
+
+    this.onlist(this.position, this.position, item.type)
   }
 
   resync(text) {

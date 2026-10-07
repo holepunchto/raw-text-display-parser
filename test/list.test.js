@@ -191,3 +191,39 @@ test('list continues on a new line at the end', (t) => {
     unorderedListDisplay(8)
   ])
 })
+
+test('list end after 2 consecutive new lines', (t) => {
+  const p = new Parser({
+    text: '• a',
+    display: [unorderedListDisplay(0)],
+    onlist: (start, end, type) => p.setList(start, end, type)
+  })
+
+  p.resync('• a\n- ')
+  t.is(p.text, '• a\n• ')
+  t.is(p.position, 6)
+  t.alike(p.display, [unorderedListDisplay(0), unorderedListDisplay(4)])
+
+  p.resync('• a\n• \n')
+  t.is(p.text, '• a\n')
+  t.is(p.position, 4)
+  t.alike(p.display, [unorderedListDisplay(0)])
+})
+
+test('list end in the middle keeps the other items', (t) => {
+  const p = new Parser({
+    text: '• a\n• \n• b',
+    display: [
+      unorderedListDisplay(0),
+      unorderedListDisplay(4),
+      unorderedListDisplay(7)
+    ],
+    onlist: (start, end, type) => p.setList(start, end, type)
+  })
+
+  p.setPosition(6)
+  p.resync('• a\n• \n\n• b')
+  t.is(p.text, '• a\n\n• b')
+  t.is(p.position, 4)
+  t.alike(p.display, [unorderedListDisplay(0), unorderedListDisplay(5)])
+})
