@@ -74,6 +74,10 @@ test('list items survive edits on other lines and drop when their mark is broken
   })
 
   p.resync('- ')
+  t.is(p.text, '• ')
+  t.is(p.position, 2)
+  t.alike(p.display, [unorderedListDisplay(0)])
+
   p.resync('• x\n- ')
   t.is(p.text, '• x\n• ')
   t.alike(p.display, [unorderedListDisplay(0), unorderedListDisplay(4)])
@@ -90,16 +94,16 @@ test('list items survive edits on other lines and drop when their mark is broken
 
   // deleting the space after the second bullet breaks that item only
   p.resync('• x @bob\n•')
-  t.is(p.text, '• x @bob\n•')
-  t.is(p.position, 10)
+  t.is(p.text, '• x @bob\n')
+  t.is(p.position, 9)
   t.alike(p.display, [
     unorderedListDisplay(0),
     { start: 4, end: 8, length: 4, type: MENTION, memberId: 'id' }
   ])
 
   // a mark typed mid-line is plain text
-  p.resync('• x @bob\n• - ')
-  t.is(p.text, '• x @bob\n• - ')
+  p.resync('• x @bob\n-')
+  t.is(p.text, '• x @bob\n-')
   t.alike(p.display, [
     unorderedListDisplay(0),
     { start: 4, end: 8, length: 4, type: MENTION, memberId: 'id' }
@@ -223,6 +227,24 @@ test('list end in the middle keeps the other items', (t) => {
 
   p.setPosition(6)
   p.resync('• a\n• \n\n• b')
+  t.is(p.text, '• a\n\n• b')
+  t.is(p.position, 4)
+  t.alike(p.display, [unorderedListDisplay(0), unorderedListDisplay(5)])
+})
+
+test('list end with empty item and backspace', (t) => {
+  const p = new Parser({
+    text: '• a\n• \n• b',
+    display: [
+      unorderedListDisplay(0),
+      unorderedListDisplay(4),
+      unorderedListDisplay(7)
+    ],
+    onlist: (start, end, type) => p.setList(start, end, type)
+  })
+
+  p.setPosition(6)
+  p.resync('• a\n•\n• b')
   t.is(p.text, '• a\n\n• b')
   t.is(p.position, 4)
   t.alike(p.display, [unorderedListDisplay(0), unorderedListDisplay(5)])

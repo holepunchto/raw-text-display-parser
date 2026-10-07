@@ -228,9 +228,16 @@ module.exports = class RawTextDisplayParser {
 
   _fireList(inserted) {
     const lineStart = getLineStart(this.text, this.position)
+    const line = this.text.slice(lineStart, this.position)
 
-    if (isUnorderedList(this.text.slice(lineStart, this.position))) {
+    if (isUnorderedList(line)) {
       return this.onlist(lineStart, this.position, DISPLAY_TYPES.UNORDERED_LIST)
+    }
+
+    // backspace on an empty item ends the list: drop its marker
+    if (line === UnorderedListMark.trim()) {
+      this.selectRange(lineStart, this.position)
+      return this.appendText('')
     }
 
     if (inserted !== '\n') return
