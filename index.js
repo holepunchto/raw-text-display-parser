@@ -247,10 +247,13 @@ module.exports = class RawTextDisplayParser {
     const item = this.display.find(
       (d) => d.start === prevStart && d.type === DISPLAY_TYPES.UNORDERED_LIST
     )
+
     if (!item) return
 
     // enter on an empty item ends the list: drop its marker and the newline
-    if (item.end === lineStart - 1) {
+    const atLineEnd =
+      this.position === this.text.length || this.text[this.position] === '\n'
+    if (item.end === lineStart - 1 && atLineEnd) {
       this.selectRange(item.start, this.position)
       return this.appendText('')
     }

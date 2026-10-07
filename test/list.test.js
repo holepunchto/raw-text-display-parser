@@ -68,6 +68,20 @@ test('enter before the start of the first item adds a plain line above it', (t) 
   t.alike(p.display, [unorderedListDisplay(1)])
 })
 
+test('enter at the start of the first item adds a new line above it', (t) => {
+  const p = new Parser({
+    text: '• a',
+    display: [unorderedListDisplay(0)],
+    onlist: (start, end, type) => p.setList(start, end, type)
+  })
+
+  p.setPosition(2)
+  p.resync('• \na')
+  t.is(p.text, '• \n• a')
+  t.is(p.position, 5)
+  t.alike(p.display, [unorderedListDisplay(0), unorderedListDisplay(3)])
+})
+
 test('list mark only converts at the start of a line', (t) => {
   const p = new Parser({
     onlist: (start, end, type) => p.setList(start, end, type)
