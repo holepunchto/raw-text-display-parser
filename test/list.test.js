@@ -361,3 +361,31 @@ test('editing in the middle of a list with an emoji item', (t) => {
     unorderedListDisplay(8)
   ])
 })
+
+test('a mark arriving in one batch before existing text converts', (t) => {
+  const p = makeParser({ text: 'x' })
+
+  p.setPosition(0)
+  p.resync('- x')
+  t.is(p.text, '• x')
+  t.is(p.position, 2)
+  t.alike(p.display, [unorderedListDisplay(0)])
+})
+
+test('a mark typed mid-line stays text', (t) => {
+  const p = makeParser({ text: 'x' })
+
+  p.resync('x- y')
+  t.is(p.text, 'x- y')
+  t.alike(p.display, [])
+})
+
+test('backspace at the start of an item body removes its marker', (t) => {
+  const p = makeParser({ text: '• a', display: [0] })
+
+  p.setPosition(2)
+  p.resync('•a')
+  t.is(p.text, 'a')
+  t.is(p.position, 0)
+  t.alike(p.display, [])
+})
