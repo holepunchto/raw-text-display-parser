@@ -12,11 +12,20 @@ const unorderedListDisplay = (start) => ({
   type: UNORDERED_LIST
 })
 
-test('list general case', (t) => {
+const makeParser = ({ text = '', display = [] }) => {
   const p = new Parser({
+    text,
+    display: display.map(unorderedListDisplay),
     onlist: (start, end, type) => p.setList(start, end, type),
-    onlink: (link) => p.setLink(link, link)
+    onlink: (link) => p.setLink(link, link),
+    onmention: (mention) => p.setMention(mention, '@bob', 'member-id'),
+    onemoji: (emoji) => p.setEmoji(emoji, ':smile:', '😄')
   })
+  return p
+}
+
+test('list general case', (t) => {
+  const p = makeParser({})
 
   p.resync('- ')
   t.is(p.text, '• ')
@@ -41,12 +50,8 @@ test('list general case', (t) => {
   ])
 })
 
-test('a line that only starts with a bullet but has no entry is not an item', (t) => {
-  const p = new Parser({
-    text: '• a',
-    display: [],
-    onlist: (start, end, type) => p.setList(start, end, type)
-  })
+test('a line that only starts with a bullet but has no display is not an item', (t) => {
+  const p = makeParser({ text: '• a' })
 
   p.resync('• a\n')
   t.is(p.text, '• a\n')
@@ -55,11 +60,7 @@ test('a line that only starts with a bullet but has no entry is not an item', (t
 })
 
 test('enter before the start of the first item adds a plain line above it', (t) => {
-  const p = new Parser({
-    text: '• a',
-    display: [unorderedListDisplay(0)],
-    onlist: (start, end, type) => p.setList(start, end, type)
-  })
+  const p = makeParser({ text: '• a', display: [0] })
 
   p.setPosition(0)
   p.resync('\n• a')
@@ -69,11 +70,7 @@ test('enter before the start of the first item adds a plain line above it', (t) 
 })
 
 test('enter at the start of the first item adds a new line above it', (t) => {
-  const p = new Parser({
-    text: '• a',
-    display: [unorderedListDisplay(0)],
-    onlist: (start, end, type) => p.setList(start, end, type)
-  })
+  const p = makeParser({ text: '• a', display: [0] })
 
   p.setPosition(2)
   p.resync('• \na')
@@ -83,9 +80,7 @@ test('enter at the start of the first item adds a new line above it', (t) => {
 })
 
 test('list mark only converts at the start of a line', (t) => {
-  const p = new Parser({
-    onlist: (start, end, type) => p.setList(start, end, type)
-  })
+  const p = makeParser({})
 
   p.resync('a - ')
   t.is(p.text, 'a - ')
@@ -109,10 +104,7 @@ test('list mark only converts at the start of a line', (t) => {
 })
 
 test('list items survive edits on other lines and drop when their mark is broken', (t) => {
-  const p = new Parser({
-    onlist: (start, end, type) => p.setList(start, end, type),
-    onmention: (input) => p.setMention(input, '@bob', 'id')
-  })
+  const p = makeParser({})
 
   p.resync('- ')
   t.is(p.text, '• ')
@@ -129,7 +121,7 @@ test('list items survive edits on other lines and drop when their mark is broken
   t.is(p.position, 8)
   t.alike(p.display, [
     unorderedListDisplay(0),
-    { start: 4, end: 8, length: 4, type: MENTION, memberId: 'id' },
+    { start: 4, end: 8, length: 4, type: MENTION, memberId: 'member-id' },
     unorderedListDisplay(9)
   ])
 
@@ -139,7 +131,7 @@ test('list items survive edits on other lines and drop when their mark is broken
   t.is(p.position, 9)
   t.alike(p.display, [
     unorderedListDisplay(0),
-    { start: 4, end: 8, length: 4, type: MENTION, memberId: 'id' }
+    { start: 4, end: 8, length: 4, type: MENTION, memberId: 'member-id' }
   ])
 
   // a mark typed mid-line is plain text
@@ -147,14 +139,12 @@ test('list items survive edits on other lines and drop when their mark is broken
   t.is(p.text, '• x @bob\n-')
   t.alike(p.display, [
     unorderedListDisplay(0),
-    { start: 4, end: 8, length: 4, type: MENTION, memberId: 'id' }
+    { start: 4, end: 8, length: 4, type: MENTION, memberId: 'member-id' }
   ])
 })
 
 test('list continues on a new line', (t) => {
-  const p = new Parser({
-    onlist: (start, end, type) => p.setList(start, end, type)
-  })
+  const p = makeParser({})
 
   p.resync('x')
   p.resync('x\n')
@@ -184,9 +174,7 @@ test('list continues on a new line', (t) => {
 })
 
 test('list continues on a new line in the middle', (t) => {
-  const p = new Parser({
-    onlist: (start, end, type) => p.setList(start, end, type)
-  })
+  const p = makeParser({})
 
   p.resync('- ')
   t.is(p.text, '• ')
@@ -211,9 +199,7 @@ test('list continues on a new line in the middle', (t) => {
 })
 
 test('list continues on a new line at the end', (t) => {
-  const p = new Parser({
-    onlist: (start, end, type) => p.setList(start, end, type)
-  })
+  const p = makeParser({})
 
   p.resync('- ')
   t.is(p.text, '• ')
@@ -238,11 +224,7 @@ test('list continues on a new line at the end', (t) => {
 })
 
 test('list end after 2 consecutive new lines', (t) => {
-  const p = new Parser({
-    text: '• a',
-    display: [unorderedListDisplay(0)],
-    onlist: (start, end, type) => p.setList(start, end, type)
-  })
+  const p = makeParser({ text: '• a', display: [0] })
 
   p.resync('• a\n- ')
   t.is(p.text, '• a\n• ')
@@ -256,15 +238,7 @@ test('list end after 2 consecutive new lines', (t) => {
 })
 
 test('list end in the middle keeps the other items', (t) => {
-  const p = new Parser({
-    text: '• a\n• \n• b',
-    display: [
-      unorderedListDisplay(0),
-      unorderedListDisplay(4),
-      unorderedListDisplay(7)
-    ],
-    onlist: (start, end, type) => p.setList(start, end, type)
-  })
+  const p = makeParser({ text: '• a\n• \n• b', display: [0, 4, 7] })
 
   p.setPosition(6)
   p.resync('• a\n• \n\n• b')
@@ -274,15 +248,7 @@ test('list end in the middle keeps the other items', (t) => {
 })
 
 test('list end with empty item and backspace', (t) => {
-  const p = new Parser({
-    text: '• a\n• \n• b',
-    display: [
-      unorderedListDisplay(0),
-      unorderedListDisplay(4),
-      unorderedListDisplay(7)
-    ],
-    onlist: (start, end, type) => p.setList(start, end, type)
-  })
+  const p = makeParser({ text: '• a\n• \n• b', display: [0, 4, 7] })
 
   p.setPosition(6)
   p.resync('• a\n•\n• b')
@@ -292,11 +258,7 @@ test('list end with empty item and backspace', (t) => {
 })
 
 test('backspace on the only item empties the text', (t) => {
-  const p = new Parser({
-    text: '• ',
-    display: [unorderedListDisplay(0)],
-    onlist: (start, end, type) => p.setList(start, end, type)
-  })
+  const p = makeParser({ text: '• ', display: [0] })
 
   p.setPosition(2)
   p.resync('•')
@@ -306,11 +268,7 @@ test('backspace on the only item empties the text', (t) => {
 })
 
 test('list lifecycle with a mention and a link inside items', (t) => {
-  const p = new Parser({
-    onlist: (start, end, type) => p.setList(start, end, type),
-    onmention: (mention) => p.setMention(mention, '@bob', 'member-id'),
-    onlink: (link) => p.setLink(link, link)
-  })
+  const p = makeParser({})
 
   p.resync('- ')
   p.resync('• @bo')
@@ -352,10 +310,7 @@ test('list lifecycle with a mention and a link inside items', (t) => {
 })
 
 test('editing in the middle of a list with an emoji item', (t) => {
-  const p = new Parser({
-    onlist: (start, end, type) => p.setList(start, end, type),
-    onemoji: (emoji) => p.setEmoji(emoji, ':smile:', '😄')
-  })
+  const p = makeParser({})
 
   p.resync('* ')
   p.resync('• :smile:')
