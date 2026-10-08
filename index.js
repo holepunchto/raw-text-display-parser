@@ -226,14 +226,16 @@ module.exports = class RawTextDisplayParser {
     }
   }
 
-  _removeText(start, end) {
+  _removeText(start, end, replacer = '') {
     const position = this.position
 
     this.selectRange(start, end)
-    this.appendText('')
+    this.appendText(replacer)
 
     if (position <= start) this.position = position
-    else if (position > end) this.position = position - (end - start)
+    else if (position > end) {
+      this.position = position - (end - start) + replacer.length
+    }
 
     this._updateWord()
   }
@@ -247,7 +249,7 @@ module.exports = class RawTextDisplayParser {
         d.start > 0 &&
         this.text[d.start - 1] !== '\n'
       ) {
-        this._removeText(d.start, d.end)
+        this._removeText(d.start, d.start + 1, UnorderedListInput[0])
       }
     }
 
@@ -256,11 +258,6 @@ module.exports = class RawTextDisplayParser {
 
     if (isUnorderedList(line)) {
       return this.onlist(lineStart, this.position, DISPLAY_TYPES.UNORDERED_LIST)
-    }
-
-    // backspace on an empty item ends the list: drop its marker
-    if (line === UnorderedListMark.trim()) {
-      return this._removeText(lineStart, this.position)
     }
 
     if (inserted !== '\n') return
@@ -310,22 +307,34 @@ module.exports = class RawTextDisplayParser {
       startOld--
     }
 
+    let _text = text
+
     for (const d of this.display) {
       if (d.end <= end) display.push(d)
-      if (startOld <= d.start)
+      else if (startOld <= d.start) {
         display.push({
           ...d,
           start: d.start + (startNew - startOld),
           end: d.end + (startNew - startOld)
         })
+      } else if (
+        d.type === DISPLAY_TYPES.UNORDERED_LIST &&
+        text[d.start] === UnorderedListMark[0]
+      ) {
+        // the edit broke the marker but left its bullet: back to `-`
+        _text =
+          text.slice(0, d.start) +
+          UnorderedListInput[0] +
+          text.slice(d.start + 1)
+      }
     }
 
-    this.position = this.text.length ? startNew : text.length
-    this.text = text
+    this.position = this.text.length ? startNew : _text.length
+    this.text = _text
     this.display = display
     this.range = null
 
-    this._fireList(text.slice(end, startNew))
+    this._fireList(_text.slice(end, startNew))
     this._fireAllWords()
   }
 
@@ -500,7 +509,7 @@ function isDefaultEmoji(word) {
 }
 
 function isUnorderedList(mark) {
-  return mark === '- ' || mark === '* '
+  return mark === UnorderedListInput
 }
 
 function noop() {}
@@ -514,4 +523,5 @@ function getLineStart(text, position) {
   return position
 }
 
+const UnorderedListInput = '- '
 const UnorderedListMark = '• '

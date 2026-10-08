@@ -97,7 +97,7 @@ test('list mark only converts at the start of a line', (t) => {
   t.is(p.position, 11)
   t.alike(p.display, [unorderedListDisplay(5)])
 
-  p.resync('a - \n• b * \n* ')
+  p.resync('a - \n• b * \n- ')
   t.is(p.text, 'a - \n• b * \n• ')
   t.is(p.position, 14)
   t.alike(p.display, [unorderedListDisplay(5), unorderedListDisplay(12)])
@@ -127,16 +127,16 @@ test('list items survive edits on other lines and drop when their mark is broken
 
   // deleting the space after the second bullet breaks that item only
   p.resync('• x @bob\n•')
-  t.is(p.text, '• x @bob\n')
-  t.is(p.position, 9)
+  t.is(p.text, '• x @bob\n-')
+  t.is(p.position, 10)
   t.alike(p.display, [
     unorderedListDisplay(0),
     { start: 4, end: 8, length: 4, type: MENTION, memberId: 'member-id' }
   ])
 
   // a mark typed mid-line is plain text
-  p.resync('• x @bob\n-')
-  t.is(p.text, '• x @bob\n-')
+  p.resync('• x @bob\n--')
+  t.is(p.text, '• x @bob\n--')
   t.alike(p.display, [
     unorderedListDisplay(0),
     { start: 4, end: 8, length: 4, type: MENTION, memberId: 'member-id' }
@@ -252,18 +252,18 @@ test('list end with empty item and backspace', (t) => {
 
   p.setPosition(6)
   p.resync('• a\n•\n• b')
-  t.is(p.text, '• a\n\n• b')
-  t.is(p.position, 4)
-  t.alike(p.display, [unorderedListDisplay(0), unorderedListDisplay(5)])
+  t.is(p.text, '• a\n-\n• b')
+  t.is(p.position, 5)
+  t.alike(p.display, [unorderedListDisplay(0), unorderedListDisplay(6)])
 })
 
-test('backspace on the only item empties the text', (t) => {
+test('backspace on the only item replaces the text', (t) => {
   const p = makeParser({ text: '• ', display: [0] })
 
   p.setPosition(2)
   p.resync('•')
-  t.is(p.text, '')
-  t.is(p.position, 0)
+  t.is(p.text, '-')
+  t.is(p.position, 1)
   t.alike(p.display, [])
 })
 
@@ -312,7 +312,7 @@ test('list lifecycle with a mention and a link inside items', (t) => {
 test('editing in the middle of a list with an emoji item', (t) => {
   const p = makeParser({})
 
-  p.resync('* ')
+  p.resync('- ')
   p.resync('• :smile:')
   t.is(p.text, '• 😄')
   t.alike(p.display, [
@@ -339,17 +339,15 @@ test('editing in the middle of a list with an emoji item', (t) => {
   // backspace on that empty item removes its marker
   p.setPosition(7)
   p.resync('• 😄\n•\n• b')
-  t.is(p.text, '• 😄\n\n• b')
-  t.is(p.position, 5)
+  t.is(p.text, '• 😄\n-\n• b')
+  t.is(p.position, 6)
   t.alike(p.display, [
     unorderedListDisplay(0),
     { type: EMOJI, start: 2, end: 4, content: 'smile', length: 2 },
-    unorderedListDisplay(6)
+    unorderedListDisplay(7)
   ])
 
-  // typing `- ` on that empty line makes it an item again
-  p.setPosition(5)
-  p.resync('• 😄\n-\n• b')
+  // typing space after `- ` on that empty line makes it an item again
   p.setPosition(6)
   p.resync('• 😄\n- \n• b')
   t.is(p.text, '• 😄\n• \n• b')
@@ -385,8 +383,8 @@ test('backspace at the start of an item body removes its marker', (t) => {
 
   p.setPosition(2)
   p.resync('•a')
-  t.is(p.text, 'a')
-  t.is(p.position, 0)
+  t.is(p.text, '-a')
+  t.is(p.position, 1)
   t.alike(p.display, [])
 })
 
@@ -395,7 +393,7 @@ test('backspace joining two items drops the second marker', (t) => {
 
   p.setPosition(4)
   p.resync('• a• b')
-  t.is(p.text, '• ab')
+  t.is(p.text, '• a- b')
   t.is(p.position, 3)
   t.alike(p.display, [unorderedListDisplay(0)])
 })
@@ -405,7 +403,7 @@ test('forward delete joining two items drops the second marker', (t) => {
 
   p.selectRange(3, 4)
   p.resync('• a• b')
-  t.is(p.text, '• ab')
+  t.is(p.text, '• a- b')
   t.is(p.position, 3)
   t.alike(p.display, [unorderedListDisplay(0)])
 })
@@ -415,7 +413,7 @@ test('joining a plain line and an item drops the marker', (t) => {
 
   p.setPosition(2)
   p.resync('x• a')
-  t.is(p.text, 'xa')
+  t.is(p.text, 'x- a')
   t.is(p.position, 1)
   t.alike(p.display, [])
 })
@@ -425,7 +423,7 @@ test('typing before the bullet drops the marker', (t) => {
 
   p.setPosition(0)
   p.resync('x• a')
-  t.is(p.text, 'xa')
+  t.is(p.text, 'x- a')
   t.is(p.position, 1)
   t.alike(p.display, [])
 })
@@ -435,8 +433,8 @@ test('backspace in the middle of the bullet drops the marker', (t) => {
 
   p.setPosition(1)
   p.resync('•a')
-  t.is(p.text, 'a')
-  t.is(p.position, 0)
+  t.is(p.text, '-a')
+  t.is(p.position, 1)
   t.alike(p.display, [])
 })
 
@@ -445,9 +443,9 @@ test('several stray markers, dropped middle, others and cursor kept', (t) => {
 
   p.setPosition(6)
   p.resync('• a\n•b\n• c')
-  t.is(p.text, '• a\nb\n• c')
-  t.is(p.position, 4)
-  t.alike(p.display, [unorderedListDisplay(0), unorderedListDisplay(6)])
+  t.is(p.text, '• a\n-b\n• c')
+  t.is(p.position, 5)
+  t.alike(p.display, [unorderedListDisplay(0), unorderedListDisplay(7)])
 })
 
 test('enter on a whitespace-only item continues the list', (t) => {
@@ -510,4 +508,82 @@ test('enter at the start of an item body splits it into an empty item and the it
   t.is(p.text, '• \n• a')
   t.is(p.position, 5)
   t.alike(p.display, [unorderedListDisplay(0), unorderedListDisplay(3)])
+})
+
+test('typing in the middle of the bullet drops the marker', (t) => {
+  const p = makeParser({ text: '• a', display: [0] })
+
+  p.setPosition(1)
+  p.resync('•x a')
+  t.is(p.text, '-x a')
+  t.is(p.position, 2)
+  t.alike(p.display, [])
+})
+
+test('backspace on an empty item, just replace remark with original char', (t) => {
+  const p = makeParser({ text: '• ', display: [0] })
+
+  p.setPosition(2)
+  p.resync('•')
+  t.is(p.text, '-')
+  t.is(p.position, 1)
+  t.alike(p.display, [])
+})
+
+test('backspace joining two items keeps the second mark as a dash', (t) => {
+  const p = makeParser({ text: '• a\n• b', display: [0, 4] })
+
+  p.setPosition(4)
+  p.resync('• a• b')
+  t.is(p.text, '• a- b')
+  t.is(p.position, 3)
+  t.alike(p.display, [unorderedListDisplay(0)])
+})
+
+test('a dash left by backspace becomes an item again when the space is retyped', (t) => {
+  const p = makeParser({ text: '• a', display: [0] })
+
+  p.setPosition(2)
+  p.resync('•a')
+  t.is(p.text, '-a')
+  t.is(p.position, 1)
+  t.alike(p.display, [])
+
+  p.resync('- a')
+  t.is(p.text, '• a')
+  t.is(p.position, 2)
+  t.alike(p.display, [unorderedListDisplay(0)])
+})
+
+test('typing inside the marker turns it into a dash', (t) => {
+  const p = makeParser({ text: '• a', display: [0] })
+
+  p.setPosition(1)
+  p.resync('•x a')
+  t.is(p.text, '-x a')
+  t.is(p.position, 2)
+  t.alike(p.display, [])
+})
+
+test('joining a plain line into an item keeps the item below intact', (t) => {
+  const p = makeParser({ text: 'x\n• a\n• b', display: [2, 6] })
+
+  p.setPosition(2)
+  p.resync('x• a\n• b')
+  t.is(p.text, 'x- a\n• b')
+  t.is(p.position, 1)
+  t.alike(p.display, [unorderedListDisplay(5)])
+})
+
+test('backspace on an empty item ends the list: drop its marker', (t) => {
+  const p = makeParser({ text: 'x\n• a\n• b\n• c', display: [2, 6, 10] })
+
+  p.setPosition(9)
+  p.resync('x\n• a\n• \n• c')
+  t.is(p.text, 'x\n• a\n• \n• c')
+
+  p.resync('x\n• a\n•\n• c')
+  t.is(p.text, 'x\n• a\n-\n• c')
+  t.is(p.position, 7)
+  t.alike(p.display, [unorderedListDisplay(2), unorderedListDisplay(8)])
 })
