@@ -11,7 +11,8 @@ module.exports = class RawTextDisplayParser {
       onpearlink = noop,
       onemoji = noop,
       onclear = noop,
-      ondefaultemoji = noop
+      ondefaultemoji = noop,
+      onlist = noop
     } = options
 
     this.display = display
@@ -25,6 +26,7 @@ module.exports = class RawTextDisplayParser {
     this.onemoji = onemoji
     this.onclear = onclear
     this.ondefaultemoji = ondefaultemoji
+    this.onlist = onlist
     this.start = 0
     this.end = 0
     this.word = ''
@@ -224,8 +226,62 @@ module.exports = class RawTextDisplayParser {
     }
   }
 
+  _removeText(start, end, replacer = '') {
+    const position = this.position
+
+    this.selectRange(start, end)
+    this.appendText(replacer)
+
+    if (position <= start) this.position = position
+    else if (position > end) {
+      this.position = position - (end - start) + replacer.length
+    }
+
+    this._updateWord()
+  }
+
+  _fireList(inserted) {
+    // a marker that is no longer at the start of a line is not an item anymore
+    for (let i = this.display.length - 1; i >= 0; i--) {
+      const d = this.display[i]
+      if (
+        d.type === DISPLAY_TYPES.UNORDERED_LIST &&
+        d.start > 0 &&
+        this.text[d.start - 1] !== '\n'
+      ) {
+        this._removeText(d.start, d.start + 1, UnorderedListInput[0])
+      }
+    }
+
+    const lineStart = getLineStart(this.text, this.position)
+    const line = this.text.slice(lineStart, this.position)
+
+    if (isUnorderedList(line)) {
+      return this.onlist(lineStart, this.position, DISPLAY_TYPES.UNORDERED_LIST)
+    }
+
+    if (inserted !== '\n') return
+
+    // enter on a list item continues the list on the new line
+    const prevStart = getLineStart(this.text, lineStart - 1)
+    const item = this.display.find(
+      (d) => d.start === prevStart && d.type === DISPLAY_TYPES.UNORDERED_LIST
+    )
+
+    if (!item) return
+
+    // enter on an empty item ends the list: drop its marker and the newline
+    const atLineEnd =
+      this.position === this.text.length || this.text[this.position] === '\n'
+    if (item.end === lineStart - 1 && atLineEnd) {
+      return this._removeText(item.start, this.position)
+    }
+
+    this.onlist(this.position, this.position, item.type)
+  }
+
   resync(text) {
-    const shared = Math.min(this.text.length, text.length)
+    const shared = Math.min(this.text.length, text.length, this.position)
     const display = []
 
     let end = 0
@@ -251,21 +307,34 @@ module.exports = class RawTextDisplayParser {
       startOld--
     }
 
+    let _text = text
+
     for (const d of this.display) {
       if (d.end <= end) display.push(d)
-      if (startOld <= d.start)
+      else if (startOld <= d.start) {
         display.push({
           ...d,
           start: d.start + (startNew - startOld),
           end: d.end + (startNew - startOld)
         })
+      } else if (
+        d.type === DISPLAY_TYPES.UNORDERED_LIST &&
+        text[d.start] === UnorderedListMark[0]
+      ) {
+        // the edit broke the marker but left its bullet: back to `-`
+        _text =
+          text.slice(0, d.start) +
+          UnorderedListInput[0] +
+          text.slice(d.start + 1)
+      }
     }
 
-    this.position = this.text.length ? startNew : text.length
-    this.text = text
+    this.position = this.text.length ? startNew : _text.length
+    this.text = _text
     this.display = display
     this.range = null
 
+    this._fireList(_text.slice(end, startNew))
     this._fireAllWords()
   }
 
@@ -386,6 +455,27 @@ module.exports = class RawTextDisplayParser {
     return true
   }
 
+  setList(start, end, type) {
+    if (start < 0 || end < start || end > this.text.length) return false
+
+    const content =
+      type === DISPLAY_TYPES.UNORDERED_LIST ? UnorderedListMark : ''
+    this.selectRange(start, end)
+    this.appendText(content)
+
+    const upd = {
+      type,
+      start,
+      end: start + content.length,
+      content,
+      length: content.length
+    }
+
+    this._clearPrevious(upd.start, upd.end)
+    this._insertDisplay(upd)
+    return true
+  }
+
   isPearLink(word) {
     return word.toLowerCase().startsWith(`${this.protocol}://`)
   }
@@ -418,8 +508,20 @@ function isDefaultEmoji(word) {
   return /\p{Extended_Pictographic}/u.test(word)
 }
 
+function isUnorderedList(mark) {
+  return mark === UnorderedListInput
+}
+
 function noop() {}
 
 function isEndWord(c) {
   return c === ' ' || c === '\n' || c === '\t'
 }
+
+function getLineStart(text, position) {
+  while (position > 0 && text[position - 1] !== '\n') position--
+  return position
+}
+
+const UnorderedListInput = '- '
+const UnorderedListMark = '• '
