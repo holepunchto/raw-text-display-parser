@@ -524,4 +524,4 @@ function getLineStart(text, position) {
 }
 
 const UnorderedListInput = '- '
-const UnorderedListMark = '• '
+const UnorderedListMark = '● '
