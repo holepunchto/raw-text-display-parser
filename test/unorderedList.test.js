@@ -587,3 +587,25 @@ test('backspace on an empty item ends the list: drop its marker', (t) => {
   t.is(p.position, 7)
   t.alike(p.display, [unorderedListDisplay(2), unorderedListDisplay(8)])
 })
+
+test('deleting over a selection that runs from inside one marker into the next item', (t) => {
+  const p = makeParser({ text: '● a\n● b', display: [0, 4] })
+
+  // select " a\n● " (from after the first bullet to after the second) and type a space
+  p.selectRange(1, 6)
+  p.resync('●b')
+  t.is(p.text, '-b')
+  t.is(p.position, 1)
+  t.alike(p.display, [])
+})
+
+test('typing over a selection that runs from inside one marker into the next item', (t) => {
+  const p = makeParser({ text: '● a\n● b', display: [0, 4] })
+
+  // select " a\n● " (from after the first bullet to after the second) and type a space
+  p.selectRange(1, 6)
+  p.resync('●b')
+  t.is(p.text, '-b')
+  t.is(p.position, 1)
+  t.alike(p.display, [])
+})

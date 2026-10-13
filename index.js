@@ -1,5 +1,7 @@
 const { DISPLAY_TYPES } = require('@holepunchto/keet-core-api')
 
+const { EMOJI, MENTION, HTTP_LINK, PEAR_LINK, UNORDERED_LIST } = DISPLAY_TYPES
+
 module.exports = class RawTextDisplayParser {
   constructor(options = {}) {
     const {
@@ -245,7 +247,7 @@ module.exports = class RawTextDisplayParser {
     for (let i = this.display.length - 1; i >= 0; i--) {
       const d = this.display[i]
       if (
-        d.type === DISPLAY_TYPES.UNORDERED_LIST &&
+        d.type === UNORDERED_LIST &&
         d.start > 0 &&
         this.text[d.start - 1] !== NewLine
       ) {
@@ -257,7 +259,7 @@ module.exports = class RawTextDisplayParser {
     const line = this.text.slice(lineStart, this.position)
 
     if (isUnorderedList(line)) {
-      return this.onlist(lineStart, this.position, DISPLAY_TYPES.UNORDERED_LIST)
+      return this.onlist(lineStart, this.position, UNORDERED_LIST)
     }
 
     if (inserted !== NewLine) return
@@ -265,7 +267,7 @@ module.exports = class RawTextDisplayParser {
     // enter on a list item continues the list on the new line
     const prevStart = getLineStart(this.text, lineStart - 1)
     const item = this.display.find(
-      (d) => d.start === prevStart && d.type === DISPLAY_TYPES.UNORDERED_LIST
+      (d) => d.start === prevStart && d.type === UNORDERED_LIST
     )
 
     if (!item) return
@@ -292,7 +294,9 @@ module.exports = class RawTextDisplayParser {
 
     // a deleted emoji can share leading code units with the next one (surrogate half,
     // base emoji before a skin tone); a prefix ending inside it drops the next display
-    const split = this.display.find((d) => d.start < end && end < d.end)
+    const split = this.display.find(
+      (d) => d.type === EMOJI && d.start < end && end < d.end
+    )
     if (split) end = split.start
 
     let startNew = text.length
@@ -318,7 +322,7 @@ module.exports = class RawTextDisplayParser {
           end: d.end + (startNew - startOld)
         })
       } else if (
-        d.type === DISPLAY_TYPES.UNORDERED_LIST &&
+        d.type === UNORDERED_LIST &&
         text[d.start] === UnorderedListOutMark
       ) {
         // the edit broke the marker but left its bullet: back to `-`
@@ -344,7 +348,7 @@ module.exports = class RawTextDisplayParser {
     const start = this.start
     // Check if we already have an emoji registered at this exact spot
     const existing = this.display.find(
-      (d) => d.start === start && d.type === DISPLAY_TYPES.EMOJI
+      (d) => d.start === start && d.type === EMOJI
     )
     // We skip appending the space to break the loop.
     if (isDefaultEmoji && existing) {
@@ -367,7 +371,7 @@ module.exports = class RawTextDisplayParser {
 
     const length = emoji ? emoji.length : code.length
     const upd = {
-      type: DISPLAY_TYPES.EMOJI,
+      type: EMOJI,
       start,
       end: start + length,
       content: code[0] === ':' ? code.slice(1, -1) : code,
@@ -384,7 +388,7 @@ module.exports = class RawTextDisplayParser {
     if (start < 0 || end <= start || end > this.text.length) return false
 
     const upd = {
-      type: DISPLAY_TYPES.EMOJI,
+      type: EMOJI,
       start,
       end,
       content: shortcode,
@@ -408,7 +412,7 @@ module.exports = class RawTextDisplayParser {
     }
 
     const upd = {
-      type: DISPLAY_TYPES.MENTION,
+      type: MENTION,
       start,
       end: start + name.length,
       length: name.length,
@@ -425,7 +429,7 @@ module.exports = class RawTextDisplayParser {
     if (this.word !== input) return false
 
     const upd = {
-      type: DISPLAY_TYPES.HTTP_LINK,
+      type: HTTP_LINK,
       start: this.start,
       end: this.end,
       content: link,
@@ -442,7 +446,7 @@ module.exports = class RawTextDisplayParser {
     if (this.word !== link) return false
 
     const upd = {
-      type: DISPLAY_TYPES.PEAR_LINK,
+      type: PEAR_LINK,
       start: this.start,
       end: this.end,
       content: link,
@@ -459,9 +463,7 @@ module.exports = class RawTextDisplayParser {
     if (start < 0 || end < start || end > this.text.length) return false
 
     const content =
-      type === DISPLAY_TYPES.UNORDERED_LIST
-        ? `${UnorderedListOutMark}${BlankSpace}`
-        : ''
+      type === UNORDERED_LIST ? `${UnorderedListOutMark}${BlankSpace}` : ''
     this.selectRange(start, end)
     this.appendText(content)
 
