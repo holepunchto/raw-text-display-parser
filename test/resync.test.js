@@ -74,8 +74,8 @@ test('resync when select a range input and paste', function (t) {
   t.is(p.position, 3)
   t.is(p.text, '12 1234567 1234')
 
-  // select the range 3-11 and paste 'xxx'
-  p.selectRange(3, 11)
+  // select the range 3-10 and paste 'xxx'
+  p.selectRange(3, 10)
   p.resync('12 xxx 1234')
   t.is(p.position, 6)
   t.is(p.text, '12 xxx 1234')
@@ -91,8 +91,8 @@ test('resync when select a range input and paste a link', function (t) {
 
   p.appendText('12 1234567 1234')
 
-  // select the range 3-11 and paste link
-  p.selectRange(3, 11)
+  // select the range 3-10 and paste link
+  p.selectRange(3, 10)
   const link = 'http://example.com'
   p.resync(`12 ${link} 1234`)
   t.is(p.position, 21)
@@ -140,8 +140,8 @@ test('resync when select a range input and paste a link should keep old display'
     }
   ])
 
-  // select the range 19-23 and paste 'xxxxxxxx'
-  p.selectRange(19, 23)
+  // select the range 19-22 and paste 'xxxxxxxx'
+  p.selectRange(19, 22)
   p.resync(`${link} xxxxxxxx ${link}`)
 
   t.is(p.position, 27)
@@ -162,8 +162,8 @@ test('resync when select a range input and paste a link should keep old display'
     }
   ])
 
-  // select the range 19-28 and paste 'a'
-  p.selectRange(19, 23)
+  // select the range 19-27 and paste 'a'
+  p.selectRange(19, 27)
   p.resync(`${link} a ${link}`)
 
   t.is(p.position, 20)
@@ -1119,4 +1119,100 @@ test('resync keeps the cursor on the start of a selected range', function (t) {
   t.is(p.text, '@bob ')
   t.is(p.position, 0)
   t.alike(p.display, [mention(0, '@bob')])
+})
+
+test('move to position and backspace', function (t) {
+  const p = new Parser({ text: 'aaaa' })
+  t.is(p.position, 4)
+  t.alike(p.display, [])
+
+  p.setPosition(2)
+  p.resync('aaa')
+  t.is(p.text, 'aaa')
+  t.is(p.position, 1)
+  t.alike(p.display, [])
+})
+
+test('move to position and type', function (t) {
+  const p = new Parser({ text: 'aaaa' })
+  t.is(p.position, 4)
+  t.alike(p.display, [])
+
+  p.setPosition(2)
+  p.resync('aaaaa')
+  t.is(p.text, 'aaaaa')
+  t.is(p.position, 3)
+  t.alike(p.display, [])
+})
+
+test('move to position and paste', function (t) {
+  const p = new Parser({ text: 'aaaa' })
+  t.is(p.position, 4)
+  t.alike(p.display, [])
+
+  p.setPosition(2)
+  p.resync('aaaaaa')
+  t.is(p.text, 'aaaaaa')
+  t.is(p.position, 4)
+  t.alike(p.display, [])
+})
+
+test('select range and backspace', function (t) {
+  const p = new Parser({ text: 'aaaa' })
+  t.is(p.position, 4)
+  t.alike(p.display, [])
+
+  p.selectRange(1, 3)
+  p.resync('aa')
+  t.is(p.text, 'aa')
+  t.is(p.position, 1)
+  t.alike(p.display, [])
+})
+
+test('select range and and type', function (t) {
+  const p = new Parser({ text: 'aaaa' })
+  t.is(p.position, 4)
+  t.alike(p.display, [])
+
+  p.selectRange(1, 3)
+  p.resync('aaa')
+  t.is(p.text, 'aaa')
+  t.is(p.position, 2)
+  t.alike(p.display, [])
+})
+
+test('move to position and paste shorter length', function (t) {
+  const p = new Parser({ text: 'aaaaa' })
+  t.is(p.position, 5)
+  t.alike(p.display, [])
+
+  p.selectRange(1, 4)
+  p.resync('aaaa')
+  t.is(p.text, 'aaaa')
+  t.is(p.position, 3)
+  t.alike(p.display, [])
+})
+
+test('move to position and paste same length', function (t) {
+  const p = new Parser({ text: 'aaaaa' })
+  t.is(p.position, 5)
+  t.alike(p.display, [])
+
+  p.selectRange(1, 4)
+  p.resync('aaaaa')
+  t.is(p.text, 'aaaaa')
+  t.is(p.position, 4)
+  t.alike(p.display, [])
+})
+
+test('move to position and paste greater length', function (t) {
+  const p = new Parser({ text: 'aaaaa' })
+  t.is(p.position, 5)
+  t.alike(p.display, [])
+
+  p.selectRange(1, 4)
+  p.resync('aaaaaa')
+  t.is(p.text, 'aaaaaa')
+  t.is(p.position, 5)
+  t.alike(p.display, [])
 })

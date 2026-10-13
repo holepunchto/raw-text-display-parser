@@ -79,6 +79,7 @@ test('mixed type: insert in the middle link keep it', (t) => {
   p.resync('https://keet.io')
   assert(t, 'https://keet.io', [display(0, 'https://keet.io', HTTP_LINK)])
 
+  p.setPosition(8)
   p.resync('https://kkkeet.io')
   assert(
     t,
@@ -94,6 +95,7 @@ test('mixed type: insert in the middle link remove it', (t) => {
   p.resync('https://keet.io')
   assert(t, 'https://keet.io', [display(0, 'https://keet.io', HTTP_LINK)])
 
+  p.setPosition(1)
   p.resync('httttps://keet.io')
   assert(t, 'httttps://keet.io', [], 3)
 })

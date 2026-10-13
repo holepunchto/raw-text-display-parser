@@ -604,8 +604,8 @@ test('typing over a selection that runs from inside one marker into the next ite
 
   // select " a\n● " (from after the first bullet to after the second) and type a space
   p.selectRange(1, 6)
-  p.resync('●b')
-  t.is(p.text, '-b')
-  t.is(p.position, 1)
-  t.alike(p.display, [])
+  p.resync('● b')
+  t.is(p.text, '● b')
+  t.is(p.position, 2)
+  t.alike(p.display, [unorderedListDisplay(0)])
 })

@@ -283,7 +283,8 @@ module.exports = class RawTextDisplayParser {
   }
 
   resync(text) {
-    const shared = Math.min(this.text.length, text.length, this.position)
+    const removed = this.range ? 0 : Math.max(0, this.text.length - text.length)
+    const shared = this.position - removed
     const display = []
 
     let end = 0
@@ -299,12 +300,16 @@ module.exports = class RawTextDisplayParser {
     )
     if (split) end = split.start
 
+    const startNewLimit = this.range
+      ? this.range.end - (this.text.length - text.length)
+      : end
+    const starOldLimit = this.range ? this.range.end : end
     let startNew = text.length
     let startOld = this.text.length
 
     while (
-      startNew > end &&
-      startOld > end &&
+      startNew > startNewLimit &&
+      startOld > starOldLimit &&
       this.text[startOld - 1] === text[startNew - 1]
     ) {
       startNew--
