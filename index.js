@@ -359,7 +359,8 @@ module.exports = class RawTextDisplayParser {
         })
       } else if (
         d.type === UNORDERED_LIST &&
-        text[d.start] === UnorderedListOutMark
+        d.start < end &&
+        this.text[d.start] === UnorderedListOutMark
       ) {
         // the edit broke the marker but left its bullet: back to `-`
         _text =
