@@ -1216,3 +1216,20 @@ test('move to position and paste greater length', function (t) {
   t.is(p.position, 5)
   t.alike(p.display, [])
 })
+
+test('backspace one of two identical emoji with a collapsed selection', (t) => {
+  const emoji = (start) => ({
+    type: DISPLAY_TYPES.EMOJI,
+    start,
+    end: start + 2,
+    content: 'grinning',
+    length: 2
+  })
+  const p = new Parser({ text: '😀😀', display: [emoji(0), emoji(2)] })
+
+  p.selectRange(2, 2)
+  p.resync('😀')
+  t.is(p.text, '😀')
+  t.is(p.position, 0)
+  t.alike(p.display, [emoji(0)])
+})
