@@ -134,14 +134,18 @@ module.exports = class RawTextDisplayParser {
     this._updateWord()
   }
 
-  _fireAllLists(from) {
+  _fireAllLists(from, to) {
     let index = getLineEnd(this.text, from + 1)
 
     let position = this.position
     while (true) {
       const start = getLineStart(this.text, index)
       const end = start + 2
-      if (start >= from && isUnorderedList(this.text.slice(start, end))) {
+      if (
+        start >= from &&
+        end < Math.min(to, this.text.length) &&
+        isUnorderedList(this.text.slice(start, end))
+      ) {
         const alreadyCovered = this.display.some(
           (d) => d.start <= start && d.end >= end && d.type === UNORDERED_LIST
         )
@@ -155,7 +159,7 @@ module.exports = class RawTextDisplayParser {
         }
       }
 
-      if (index + 1 >= this.text.length) break
+      if (index >= Math.min(to, this.text.length)) break
 
       index = getLineEnd(this.text, index + 1)
     }
@@ -376,7 +380,7 @@ module.exports = class RawTextDisplayParser {
     this.range = null
 
     this._fireList(_text.slice(end, startNew))
-    startNew > end && this._fireAllLists(end)
+    startNew > end && this._fireAllLists(end, startNew)
     this._fireAllWords()
   }
 
@@ -567,7 +571,7 @@ function getLineStart(text, position) {
 
 function getLineEnd(text, start) {
   const index = text.indexOf(NewLine, start)
-  if (index === -1) return text.length - 1
+  if (index === -1) return text.length
   return index
 }
 

@@ -760,14 +760,14 @@ test('paste a list whose first item shrinks while it is converted', (t) => {
   ])
 })
 
-// test('an unconverted mark line below the cursor does not hang without a list handler', (t) => {
-//   const p = makeParser({ text: 'x\n- b' })
+test('an unconverted mark line below the cursor does not hang without a list handler', (t) => {
+  const p = makeParser({ text: 'x\n- b' })
 
-//   p.setPosition(1)
-//   p.resync('xy\n- b')
-//   t.is(p.text, 'xy\n- b')
-//   t.alike(p.display, [])
-// })
+  p.setPosition(1)
+  p.resync('xy\n- b')
+  t.is(p.text, 'xy\n- b')
+  t.alike(p.display, [])
+})
 
 test('deleting the whole first list line keeps the next item intact', (t) => {
   const p = makeParser({ text: '● a\n● b', display: [0, 4] })
