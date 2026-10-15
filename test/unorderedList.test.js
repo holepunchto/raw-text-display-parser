@@ -777,3 +777,14 @@ test('deleting the whole first list line keeps the next item intact', (t) => {
   t.is(p.text, '● b')
   t.alike(p.display, [unorderedListDisplay(0)])
 })
+
+test('one edit touching two items leaves no orphan bullet', (t) => {
+  const p = makeParser({ text: '● a\n● b', display: [0, 4] })
+
+  p.selectRange(1, 6)
+  p.resync('● x\n●b')
+
+  t.is(p.text, '- x\n●b')
+  t.is(p.position, 5)
+  t.alike(p.display, [])
+})

@@ -141,7 +141,7 @@ module.exports = class RawTextDisplayParser {
     while (true) {
       const start = getLineStart(this.text, index)
       const end = start + 2
-      if (isUnorderedList(this.text.slice(start, end))) {
+      if (start >= from && isUnorderedList(this.text.slice(start, end))) {
         const alreadyCovered = this.display.some(
           (d) => d.start <= start && d.end >= end && d.type === UNORDERED_LIST
         )
