@@ -134,6 +134,35 @@ module.exports = class RawTextDisplayParser {
     this._updateWord()
   }
 
+  _fireAllLists(from) {
+    let index = getLineEnd(this.text, from + 1)
+
+    let position = this.position
+    while (true) {
+      const start = getLineStart(this.text, index)
+      const end = start + 2
+      if (isUnorderedList(this.text.slice(start, end))) {
+        const alreadyCovered = this.display.some(
+          (d) => d.start <= start && d.end >= end && d.type === UNORDERED_LIST
+        )
+        if (!alreadyCovered) {
+          const length = this.text.length
+          this.onlist(start, end, UNORDERED_LIST)
+          if (end < position) position += this.text.length - length
+
+          // the host may have grown or shrunk this.text, find the line's end again from its start
+          index = getLineEnd(this.text, start)
+        }
+      }
+
+      if (index + 1 >= this.text.length) break
+
+      index = getLineEnd(this.text, index + 1)
+    }
+
+    this.position = position
+  }
+
   _dispatchWord(word, start, end) {
     this.word = word
     this.start = start
@@ -346,6 +375,7 @@ module.exports = class RawTextDisplayParser {
     this.range = null
 
     this._fireList(_text.slice(end, startNew))
+    startNew > end && this._fireAllLists(end)
     this._fireAllWords()
   }
 
@@ -532,6 +562,12 @@ function isEndWord(c) {
 function getLineStart(text, position) {
   while (position > 0 && text[position - 1] !== NewLine) position--
   return position
+}
+
+function getLineEnd(text, start) {
+  const index = text.indexOf(NewLine, start)
+  if (index === -1) return text.length - 1
+  return index
 }
 
 const BlankSpace = ' '

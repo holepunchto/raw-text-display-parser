@@ -609,3 +609,158 @@ test('typing over a selection that runs from inside one marker into the next ite
   t.is(p.position, 2)
   t.alike(p.display, [unorderedListDisplay(0)])
 })
+
+test('paste the whole unordered-list', (t) => {
+  const p = makeParser({})
+
+  p.resync('- line 1\n- line 2\n- line 3')
+  t.is(p.text, '● line 1\n● line 2\n● line 3')
+  t.is(p.position, 26)
+  t.alike(p.display, [
+    unorderedListDisplay(0),
+    unorderedListDisplay(9),
+    unorderedListDisplay(18)
+  ])
+})
+
+test('paste the whole unordered-list after existing text', (t) => {
+  const p = makeParser({ text: 'intro' })
+
+  p.resync('intro\n- line 1\n\n- line 2\n')
+  t.is(p.text, 'intro\n● line 1\n\n● line 2\n')
+  t.is(p.position, 25)
+  t.alike(p.display, [unorderedListDisplay(6), unorderedListDisplay(16)])
+})
+
+test('paste the whole unordered-list after existing text with - ', (t) => {
+  const p = makeParser({ text: '- intro' })
+
+  p.resync('- intro\n- line 1\n\n- line 2\n')
+  t.is(p.text, '- intro\n● line 1\n\n● line 2\n')
+  t.is(p.position, 27)
+  t.alike(p.display, [unorderedListDisplay(8), unorderedListDisplay(18)])
+})
+
+test('paste the whole unordered-list into the middle of an existing list', (t) => {
+  const p = makeParser({ text: '● a\n● d', display: [0, 4] })
+
+  // cursor at the end of the first item, paste two more items
+  p.setPosition(3)
+  p.resync('● a\n- b\n- c\n● d')
+  t.is(p.text, '● a\n● b\n● c\n● d')
+  t.is(p.position, 11)
+  t.alike(p.display, [
+    unorderedListDisplay(0),
+    unorderedListDisplay(4),
+    unorderedListDisplay(8),
+    unorderedListDisplay(12)
+  ])
+})
+
+test('paste the whole unordered-list onto an empty item', (t) => {
+  const p = makeParser({ text: '● ', display: [0] })
+
+  p.setPosition(2)
+  p.resync('● - a\n- b')
+  t.is(p.text, '● - a\n● b')
+  t.is(p.position, 9)
+  t.alike(p.display, [unorderedListDisplay(0), unorderedListDisplay(6)])
+})
+
+test('paste a list with a mention, an emoji and a link over a selection, then keep typing', (t) => {
+  const p = makeParser({
+    text: 'todo:\nold'
+  })
+
+  p.selectRange(6, 9)
+  p.resync('todo:\n- @bo\n- :smile: http://a.io\n\n- done')
+  t.is(p.text, 'todo:\n● @bob\n● 😄 http://a.io\n\n● done')
+  t.is(p.position, 37)
+  t.alike(p.display, [
+    unorderedListDisplay(6),
+    { type: MENTION, start: 8, end: 12, length: 4, memberId: 'member-id' },
+    unorderedListDisplay(13),
+    { type: EMOJI, start: 15, end: 17, content: 'smile', length: 2 },
+    { type: HTTP_LINK, start: 18, end: 29, content: 'http://a.io', length: 11 },
+    unorderedListDisplay(31)
+  ])
+
+  p.resync('todo:\n● @bob\n● 😄 http://a.io\n\n● done\n')
+  t.is(p.text, 'todo:\n● @bob\n● 😄 http://a.io\n\n● done\n● ')
+  t.is(p.position, 40)
+
+  p.resync('todo:\n● @bob\n● 😄 http://a.io\n\n● done\n● \n')
+  t.is(p.text, 'todo:\n● @bob\n● 😄 http://a.io\n\n● done\n')
+  t.is(p.position, 38)
+  t.is(p.display.length, 6)
+})
+
+test('editing a middle line leaves an untouched mark line above it alone', (t) => {
+  const p = makeParser({ text: '- a\nx\ny' })
+
+  p.setPosition(5)
+  p.resync('- a\nxz\ny')
+  t.is(p.text, '- a\nxz\ny')
+  t.alike(p.display, [])
+})
+
+test('editing the last line leaves an untouched mark line above it alone', (t) => {
+  const p = makeParser({ text: '- a\nx\ny' })
+
+  p.setPosition(7)
+  p.resync('- a\nx\nyz')
+  t.is(p.text, '- a\nx\nyz')
+  t.alike(p.display, [])
+})
+
+test('an edit on the empty last line leaves an untouched mark line above it alone', (t) => {
+  const p = makeParser({ text: '- a\nx' })
+
+  p.setPosition(5)
+  p.resync('- a\n')
+  t.is(p.text, '- a\n')
+  t.is(p.position, 4)
+  t.alike(p.display, [])
+})
+
+test('paste a list over a selection that is shorter than the paste', (t) => {
+  const p = makeParser({ text: 'abc' })
+
+  p.selectRange(0, 3)
+  p.resync('- a\n- b')
+  t.is(p.text, '● a\n● b')
+  t.is(p.position, 7)
+  t.alike(p.display, [unorderedListDisplay(0), unorderedListDisplay(4)])
+})
+
+test('paste a list over a selection that is longer than the paste', (t) => {
+  const p = makeParser({ text: 'hello world' })
+
+  p.selectRange(0, 11)
+  p.resync('- a\n- b')
+  t.is(p.text, '● a\n● b')
+  t.is(p.position, 7)
+  t.alike(p.display, [unorderedListDisplay(0), unorderedListDisplay(4)])
+})
+
+test('paste a list whose first item shrinks while it is converted', (t) => {
+  const p = makeParser({})
+
+  p.resync('- :smile:\n- x')
+  t.is(p.text, '● 😄\n● x')
+  t.is(p.position, 8)
+  t.alike(p.display, [
+    unorderedListDisplay(0),
+    { type: EMOJI, start: 2, end: 4, content: 'smile', length: 2 },
+    unorderedListDisplay(5)
+  ])
+})
+
+test('an unconverted mark line below the cursor does not hang without a list handler', (t) => {
+  const p = new Parser({ text: 'x\n- b' })
+
+  p.setPosition(1)
+  p.resync('xy\n- b')
+  t.is(p.text, 'xy\n- b')
+  t.alike(p.display, [])
+})
