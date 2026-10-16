@@ -166,15 +166,17 @@ test('mixed type: type, then edit in the middle, at the start, at the end', (t) 
   // edit in the middle: add a subdomain inside the link,
   const docsLink = 'https://docs.keet.io'
   _text = _text.replace(keetLink, docsLink)
+  p.selectRange(3, 18)
   p.resync(_text) // text = "😀 https://docs.keet.io @alice "
   _display = [
     _display[0],
     display(3, docsLink, HTTP_LINK),
     display(24, '@alice', MENTION, 'member-id-a')
   ]
-  assert(t, _text, _display, 16)
+  assert(t, _text, _display, 23)
 
   _text = 'hi ' + _text
+  p.setPosition(0)
   p.resync(_text) // text = "hi 😀 https://docs.keet.io @alice "
   _display = [
     display(3, 'grinning', EMOJI),
@@ -206,4 +208,27 @@ test('mixed type: type, then edit in the middle, at the start, at the end', (t) 
     display(46, 'rocket', EMOJI)
   ]
   assert(t, _text, _display, 12)
+})
+
+test('mixed type: type, then edit in the middle of the link', (t) => {
+  let _text = '😀 https://keet.io @alice '
+  let _display = [
+    display(0, 'grinning', EMOJI),
+    display(3, keetLink, HTTP_LINK),
+    display(19, '@alice', MENTION, 'member-id-a')
+  ]
+  p.reset({ text: _text, display: _display })
+  assert(t, _text, _display)
+
+  // edit in the middle: add a subdomain inside the link,
+  const docsLink = 'https://docs.keet.io'
+  _text = _text.replace(keetLink, docsLink)
+  p.setPosition(11)
+  p.resync(_text) // text = "😀 https://docs.keet.io @alice "
+  _display = [
+    _display[0],
+    display(3, docsLink, HTTP_LINK),
+    display(24, '@alice', MENTION, 'member-id-a')
+  ]
+  assert(t, _text, _display, 16)
 })

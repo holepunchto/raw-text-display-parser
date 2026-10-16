@@ -1247,3 +1247,10 @@ test('backspace one of two identical emoji with a collapsed selection', (t) => {
   t.is(p.position, 0)
   t.alike(p.display, [emoji(0)])
 })
+
+test('resolving a token elsewhere must not move the caret', (t) => {
+  const p = new Parser({ text: 'hi :smi' })
+  p.setPosition(0)
+  p.resync('ahi :smi')
+  t.is(p.position, 1)
+})

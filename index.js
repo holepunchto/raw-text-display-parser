@@ -112,14 +112,15 @@ module.exports = class RawTextDisplayParser {
     this._dispatchWord(this.word, this.start, this.end)
   }
 
-  _fireAllWords() {
-    let start = 0
-    while (start < this.text.length) {
-      while (start < this.text.length && isEndWord(this.text[start])) start++
-      if (start >= this.text.length) break
+  _fireAllWords(from, to) {
+    let start = from
+    while (start < Math.min(to, this.text.length)) {
+      const limit = Math.min(to, this.text.length)
+      while (start < limit && isEndWord(this.text[start])) start++
+      if (start >= limit) break
 
       let end = start
-      while (end < this.text.length && !isEndWord(this.text[end])) end++
+      while (end < limit && !isEndWord(this.text[end])) end++
 
       const alreadyCovered = this.display.some(
         (d) => d.start <= start && d.end >= end
@@ -387,6 +388,8 @@ module.exports = class RawTextDisplayParser {
     }
 
     let _text = text
+    let extendedEnd = end
+    let extendedStartNew = startNew
 
     for (const d of this.display) {
       if (d.end <= end) display.push(d)
@@ -406,6 +409,15 @@ module.exports = class RawTextDisplayParser {
           text.slice(0, d.start) +
           UnorderedListInputMark +
           text.slice(d.start + 1)
+      } else if (
+        [HTTP_LINK, PEAR_LINK].includes(d.type) &&
+        d.start < extendedEnd
+      ) {
+        extendedEnd = Math.min(extendedEnd, d.start)
+        extendedStartNew = Math.max(
+          extendedStartNew,
+          d.end + (startNew - startOld)
+        )
       }
     }
 
@@ -416,7 +428,8 @@ module.exports = class RawTextDisplayParser {
 
     this._fireList(_text.slice(end, startNew))
     startNew > end && this._fireAllLists(end, startNew)
-    this._fireAllWords()
+    extendedStartNew > extendedEnd &&
+      this._fireAllWords(extendedEnd, extendedStartNew)
   }
 
   setEmoji(input, code, emoji, isDefaultEmoji) {
