@@ -420,3 +420,161 @@ test('emoji at the start, before another emoji-ed', function (t) {
     }
   ])
 })
+
+test('ondefaultemoji is called per emoji when emojis are typed without spaces', (t) => {
+  const codes = { '😂': 'joy', '🚀': 'rocket' }
+  const p = new Parser({
+    ondefaultemoji: (word) => {
+      if (codes[word]) p.setEmoji(word, codes[word], word, true)
+    }
+  })
+
+  p.resync('😂😂🚀')
+
+  t.is(p.text, '😂😂🚀 ')
+  t.alike(
+    p.display.map((d) => [d.start, d.end, d.content]),
+    [
+      [0, 2, 'joy'],
+      [2, 4, 'joy'],
+      [4, 6, 'rocket']
+    ]
+  )
+})
+
+test('ondefaultemoji marks an emoji typed before the trailing space of the previous one lands', (t) => {
+  const p = new Parser({
+    ondefaultemoji: (word) => {
+      if (word === '😂') p.setEmoji(word, 'joy', word, true)
+    }
+  })
+
+  p.resync('😂')
+  p.resync('😂😂')
+  p.resync('😂😂😂')
+
+  t.alike(
+    p.display.map((d) => [d.start, d.end]),
+    [
+      [0, 2],
+      [2, 4],
+      [4, 6]
+    ]
+  )
+})
+
+test('ondefaultemoji keeps skin tone and joined emojis whole when typed together', (t) => {
+  const family = '\u{1F468}\u{200D}\u{1F469}\u{200D}\u{1F467}'
+  const codes = { '👍🏽': 'thumbsup_medium', [family]: 'family' }
+  const p = new Parser({
+    ondefaultemoji: (word) => {
+      if (codes[word]) p.setEmoji(word, codes[word], word, true)
+    }
+  })
+
+  p.resync(`👍🏽${family}`)
+
+  t.alike(
+    p.display.map((d) => [d.start, d.end, d.content]),
+    [
+      [0, 4, 'thumbsup_medium'],
+      [4, 12, 'family']
+    ]
+  )
+})
+
+test('ondefaultemoji does not add a space when an emoji is inserted between two others', (t) => {
+  const codes = { '😂': 'joy', '🚀': 'rocket' }
+  const p = new Parser({
+    ondefaultemoji: (word) => {
+      if (codes[word]) p.setEmoji(word, codes[word], word, true)
+    }
+  })
+
+  p.resync('🚀🚀')
+  p.setPosition(2)
+  p.resync('🚀😂🚀 ')
+
+  t.is(p.text, '🚀😂🚀 ')
+})
+
+test('ondefaultemoji is not called again for marked emojis on later edits', (t) => {
+  let calls = 0
+  const p = new Parser({
+    ondefaultemoji: (word) => {
+      calls++
+      if (word === '😂') p.setEmoji(word, 'joy', word, true)
+    }
+  })
+
+  p.resync('😂😂 aa')
+  const callsBefore = calls
+  p.resync('😂😂 aaa')
+
+  t.is(calls, callsBefore)
+})
+
+test('ondefaultemoji is called per emoji when emojis are attached to text', (t) => {
+  const codes = { '😂': 'joy', '🚀': 'rocket' }
+  const p = new Parser({
+    ondefaultemoji: (word) => {
+      if (codes[word]) p.setEmoji(word, codes[word], word, true)
+    }
+  })
+
+  p.resync('😂hi😂🚀')
+
+  t.is(p.text, '😂hi😂🚀')
+  t.alike(
+    p.display.map((d) => [d.start, d.end, d.content]),
+    [
+      [0, 2, 'joy'],
+      [4, 6, 'joy'],
+      [6, 8, 'rocket']
+    ]
+  )
+})
+
+test('ondefaultemoji leaves text-default symbols attached to text alone', (t) => {
+  const p = new Parser({
+    ondefaultemoji: (word) => {
+      if (word === '™') p.setEmoji(word, 'tm', word, true)
+    }
+  })
+
+  p.resync('Keet™')
+
+  t.is(p.text, 'Keet™')
+  t.alike(p.display, [])
+})
+
+test('ondefaultemoji leaves an emoji in text style attached to text alone', (t) => {
+  const p = new Parser({
+    ondefaultemoji: (word) => {
+      if (word === '😂') p.setEmoji(word, 'joy', word, true)
+    }
+  })
+
+  p.resync('I😂\u{FE0E}')
+
+  t.is(p.text, 'I😂\u{FE0E}')
+  t.alike(p.display, [])
+})
+
+test('ondefaultemoji does not split a word when an emoji is typed inside it', (t) => {
+  const p = new Parser({
+    ondefaultemoji: (word) => {
+      if (word === '😂') p.setEmoji(word, 'joy', word, true)
+    }
+  })
+
+  p.resync('ab')
+  p.setPosition(1)
+  p.resync('a😂b')
+
+  t.is(p.text, 'a😂b')
+  t.alike(
+    p.display.map((d) => [d.start, d.end]),
+    [[1, 3]]
+  )
+})
