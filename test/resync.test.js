@@ -1276,7 +1276,7 @@ test('resync dispatches the whole word when completing an emoji', (t) => {
   ])
 })
 
-test('resync dispatches the joined word after a forward delete', (t) => {
+test('resync dispatches the joined word after a backspace', (t) => {
   const cleared = []
   const p = new Parser({ text: 'abc def', onclear: (w) => cleared.push(w) })
 
@@ -1405,4 +1405,28 @@ test('resync does not dispatch past the range when a callback grows the text', (
   t.is(p.text, 'a @bobby c z')
   t.alike(p.display, [mention(2, '@bobby')])
   t.alike(cleared, ['a', 'c'])
+})
+
+test('resync dispatches the joined word after a forward delete', (t) => {
+  const cleared = []
+  const p = new Parser({ text: 'abc def', onclear: (w) => cleared.push(w) })
+
+  p.setPosition(3)
+  p.resync('abcdef')
+  t.alike(cleared, ['abcdef'])
+  t.is(p.position, 3)
+  t.is(p.word, 'abcdef')
+})
+
+test('resync re-dispatches a word extending a mention display', (t) => {
+  const p = new Parser({
+    text: '@bob',
+    display: [mention(0, '@bob', 'member-id')],
+    onmention: (w) => p.setMention(w, '@bobx', 'member-id-x')
+  })
+
+  p.resync('@bobx')
+  t.is(p.text, '@bobx')
+  t.is(p.position, 5)
+  t.alike(p.display, [mention(0, '@bobx', 'member-id-x')])
 })
