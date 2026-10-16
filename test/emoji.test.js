@@ -579,7 +579,7 @@ test('ondefaultemoji does not split a word when an emoji is typed inside it', (t
   )
 })
 
-test('12. default emoji in the middle of a word is placed on the emoji', (t) => {
+test('default emoji in the middle of a word is placed on the emoji', (t) => {
   const p = new Parser({
     ondefaultemoji: (w) => p.setEmoji(w, 'grinning', '😀', true)
   })
