@@ -110,21 +110,28 @@ module.exports = class RawTextDisplayParser {
     this._dispatchWord(this.word, this.start, this.end)
   }
 
-  _fireAllWords(from, to) {
-    let start = from
-    while (start < Math.min(to, this.text.length)) {
-      const limit = Math.min(to, this.text.length)
-      while (start < limit && isEndWord(this.text[start])) start++
-      if (start >= limit) break
+  _fireAllWords(_from, _to) {
+    // widen to whole words so an edit never dispatches a word fragment
+    let start = _from
+    let to = Math.min(_to, this.text.length)
+    while (start > 0 && !isEndWord(this.text[start - 1])) start--
+    while (to < this.text.length && !isEndWord(this.text[to])) to++
+
+    while (start < to) {
+      while (start < to && isEndWord(this.text[start])) start++
+      if (start >= to) break
 
       let end = start
-      while (end < limit && !isEndWord(this.text[end])) end++
+      while (end < to && !isEndWord(this.text[end])) end++
 
       const alreadyCovered = this.display.some(
         (d) => d.start <= start && d.end >= end
       )
       if (!alreadyCovered) {
+        const oldLength = this.text.length
         this._dispatchWord(this.text.slice(start, end), start, end)
+        // a callback can replace the word, shifting the rest of the range
+        to += this.text.length - oldLength
         start = this.end
       } else {
         start = end
@@ -298,37 +305,27 @@ module.exports = class RawTextDisplayParser {
       startOld--
     }
 
-    let _text = text
-    let extendedEnd = end
-    let extendedStartNew = startNew
+    const delta = startNew - startOld
+    let from = end
+    let to = startNew
 
     for (const d of this.display) {
       if (d.end <= end) display.push(d)
       else if (startOld <= d.start) {
-        display.push({
-          ...d,
-          start: d.start + (startNew - startOld),
-          end: d.end + (startNew - startOld)
-        })
-      } else if (
-        [HTTP_LINK, PEAR_LINK].includes(d.type) &&
-        d.start < extendedEnd
-      ) {
-        extendedEnd = Math.min(extendedEnd, d.start)
-        extendedStartNew = Math.max(
-          extendedStartNew,
-          d.end + (startNew - startOld)
-        )
+        display.push({ ...d, start: d.start + delta, end: d.end + delta })
+      } else if (d.start < from) {
+        // the edit overlaps this display, re-dispatch everything it covered
+        from = Math.min(from, d.start)
+        to = Math.max(to, d.end + delta)
       }
     }
 
-    this.position = this.text.length ? startNew : _text.length
-    this.text = _text
+    this.position = this.text.length ? startNew : text.length
+    this.text = text
     this.display = display
     this.range = null
 
-    extendedStartNew > extendedEnd &&
-      this._fireAllWords(extendedEnd, extendedStartNew)
+    this._fireAllWords(from, to)
   }
 
   setEmoji(input, code, emoji, isDefaultEmoji) {

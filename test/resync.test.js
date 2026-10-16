@@ -3,6 +3,14 @@ const test = require('brittle')
 const Parser = require('..')
 const { DISPLAY_TYPES } = require('@holepunchto/keet-core-api')
 
+const mention = (start, content, memberId) => ({
+  start,
+  end: start + content.length,
+  type: DISPLAY_TYPES.MENTION,
+  memberId,
+  length: content.length
+})
+
 test('resync when paste to empty input', function (t) {
   let params = null
   const p = new Parser({
@@ -723,14 +731,6 @@ test('resync - replace at end', (t) => {
   t.is(p.position, 11)
 })
 
-const mention = (start, content, memberId) => ({
-  start,
-  end: start + content.length,
-  type: DISPLAY_TYPES.MENTION,
-  memberId,
-  length: content.length
-})
-
 test('resync - insert before a display item shifts it', (t) => {
   const p = new Parser({
     text: '@alice and @bob hi',
@@ -1253,4 +1253,156 @@ test('resolving a token elsewhere must not move the caret', (t) => {
   p.setPosition(0)
   p.resync('ahi :smi')
   t.is(p.position, 1)
+})
+
+test('resync dispatches the whole word when completing an emoji', (t) => {
+  const p = new Parser({
+    text: 'hi :smile',
+    onemoji: (emoji) =>
+      emoji === ':smile:' && p.setEmoji(emoji, ':smile:', '😄')
+  })
+
+  p.resync('hi :smile:')
+  t.is(p.text, 'hi 😄')
+  t.is(p.position, 5)
+  t.alike(p.display, [
+    {
+      type: DISPLAY_TYPES.EMOJI,
+      start: 3,
+      end: 5,
+      content: 'smile',
+      length: 2
+    }
+  ])
+})
+
+test('resync dispatches the joined word after a forward delete', (t) => {
+  const cleared = []
+  const p = new Parser({ text: 'abc def', onclear: (w) => cleared.push(w) })
+
+  p.setPosition(4)
+  p.resync('abcdef')
+  t.alike(cleared, ['abcdef'])
+  t.is(p.position, 3)
+  t.is(p.word, 'abcdef')
+})
+
+test('resync re-dispatches a mention extended at its end', (t) => {
+  const mentions = []
+  const p = new Parser({
+    text: '@bob',
+    onmention: (w) => mentions.push(w)
+  })
+
+  p.resync('@bobx')
+  t.alike(mentions, ['@bobx'])
+  t.is(p.text, '@bobx')
+  t.is(p.position, 5)
+})
+
+test('resync re-dispatches a link extended at its end', (t) => {
+  const p = new Parser({ onlink: (w) => p.setLink(w, w) })
+
+  p.resync('https://a.co')
+  p.resync('https://a.cox')
+  t.is(p.text, 'https://a.cox')
+  t.is(p.position, 13)
+  t.alike(p.display, [
+    {
+      type: DISPLAY_TYPES.HTTP_LINK,
+      start: 0,
+      end: 13,
+      content: 'https://a.cox',
+      length: 13
+    }
+  ])
+})
+
+test('resync re-dispatches a mention shortened by a deletion', (t) => {
+  const mentions = []
+  const p = new Parser({
+    text: '@bobby',
+    display: [mention(0, '@bobby')],
+    onmention: (w) => mentions.push(w)
+  })
+
+  p.resync('@bob')
+  t.alike(mentions, ['@bob'])
+  t.is(p.text, '@bob')
+  t.is(p.position, 4)
+  t.alike(p.display, [])
+})
+
+test('resync detects a link revealed by a deletion', (t) => {
+  const links = []
+  const p = new Parser({ text: 'xhttps://a.co', onlink: (w) => links.push(w) })
+
+  p.setPosition(1)
+  p.resync('https://a.co')
+  t.is(p.text, 'https://a.co')
+  t.is(p.position, 0)
+  t.alike(links, ['https://a.co'])
+})
+
+test('resync updates the current word after a deletion', (t) => {
+  const p = new Parser({ text: 'xhttps://a.co' })
+
+  p.setPosition(1)
+  p.resync('https://a.co')
+  t.is(p.text, 'https://a.co')
+  t.is(p.position, 0)
+  t.is(p.word, 'https://a.co')
+  t.is(p.start, 0)
+  t.is(p.end, 12)
+})
+
+test('resync re-dispatches every word of an overlapped mention', (t) => {
+  const mentions = []
+  const cleared = []
+  const p = new Parser({
+    text: '@Alice Smith hi',
+    display: [mention(0, '@Alice Smith')],
+    onmention: (w) => mentions.push(w),
+    onclear: (w) => cleared.push(w)
+  })
+
+  p.setPosition(9)
+  p.resync('@Alice Smxith hi')
+  t.is(p.text, '@Alice Smxith hi')
+  t.is(p.position, 10)
+  t.alike(p.display, [])
+  t.alike(mentions, ['@Alice'])
+  t.alike(cleared, ['Smxith'])
+})
+
+test('resync keeps the range in sync when a callback shrinks the text', (t) => {
+  const cleared = []
+  const p = new Parser({
+    text: 'a b',
+    onemoji: (w) => p.setEmoji(w, ':smile:', '😄'),
+    onclear: (w) => cleared.push(w)
+  })
+
+  p.setPosition(1)
+  p.resync('a :smile: c d b')
+  t.is(p.text, 'a 😄 c d b')
+  t.alike(p.display, [
+    { type: DISPLAY_TYPES.EMOJI, start: 2, end: 4, length: 2, content: 'smile' }
+  ])
+  t.alike(cleared, ['a', 'c', 'd'])
+})
+
+test('resync does not dispatch past the range when a callback grows the text', (t) => {
+  const cleared = []
+  const p = new Parser({
+    text: 'a z',
+    onmention: (w) => p.setMention(w, '@bobby'),
+    onclear: (w) => cleared.push(w)
+  })
+
+  p.setPosition(1)
+  p.resync('a @b c z')
+  t.is(p.text, 'a @bobby c z')
+  t.alike(p.display, [mention(2, '@bobby')])
+  t.alike(cleared, ['a', 'c'])
 })
