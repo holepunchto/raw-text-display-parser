@@ -74,8 +74,8 @@ test('resync when select a range input and paste', function (t) {
   t.is(p.position, 3)
   t.is(p.text, '12 1234567 1234')
 
-  // select the range 3-11 and paste 'xxx'
-  p.selectRange(3, 11)
+  // select the range 3-10 and paste 'xxx'
+  p.selectRange(3, 10)
   p.resync('12 xxx 1234')
   t.is(p.position, 6)
   t.is(p.text, '12 xxx 1234')
@@ -91,8 +91,8 @@ test('resync when select a range input and paste a link', function (t) {
 
   p.appendText('12 1234567 1234')
 
-  // select the range 3-11 and paste link
-  p.selectRange(3, 11)
+  // select the range 3-10 and paste link
+  p.selectRange(3, 10)
   const link = 'http://example.com'
   p.resync(`12 ${link} 1234`)
   t.is(p.position, 21)
@@ -140,8 +140,8 @@ test('resync when select a range input and paste a link should keep old display'
     }
   ])
 
-  // select the range 19-23 and paste 'xxxxxxxx'
-  p.selectRange(19, 23)
+  // select the range 19-22 and paste 'xxxxxxxx'
+  p.selectRange(19, 22)
   p.resync(`${link} xxxxxxxx ${link}`)
 
   t.is(p.position, 27)
@@ -162,8 +162,8 @@ test('resync when select a range input and paste a link should keep old display'
     }
   ])
 
-  // select the range 19-28 and paste 'a'
-  p.selectRange(19, 23)
+  // select the range 19-27 and paste 'a'
+  p.selectRange(19, 27)
   p.resync(`${link} a ${link}`)
 
   t.is(p.position, 20)
@@ -723,11 +723,12 @@ test('resync - replace at end', (t) => {
   t.is(p.position, 11)
 })
 
-const mention = (start, content) => ({
+const mention = (start, content, memberId) => ({
   start,
   end: start + content.length,
   type: DISPLAY_TYPES.MENTION,
-  content
+  memberId,
+  length: content.length
 })
 
 test('resync - insert before a display item shifts it', (t) => {
@@ -948,6 +949,7 @@ test('resync - insert between two adjacent items', (t) => {
 test('resync - consecutive edits keep items in sync', (t) => {
   const p = new Parser({ text: '@alice', display: [mention(0, '@alice')] })
 
+  p.setPosition(0)
   p.resync('a @alice')
   t.is(p.position, 2)
   t.alike(p.display, [mention(2, '@alice')])
@@ -956,6 +958,7 @@ test('resync - consecutive edits keep items in sync', (t) => {
   t.is(p.position, 2)
   t.alike(p.display, [mention(3, '@alice')])
 
+  p.setPosition(9)
   p.resync('ab @alice!')
   t.is(p.position, 10)
   t.alike(p.display, [mention(3, '@alice')])
@@ -1003,7 +1006,8 @@ test('resync - mixed item types all shift together', (t) => {
       length: 2
     }
   ])
-  for (const d of p.display) t.is(p.text.slice(d.start, d.end), d.content)
+  for (const d of p.display)
+    d.content && t.is(p.text.slice(d.start, d.end), d.content)
 })
 
 test('resync insert mention in the middle', function (t) {
@@ -1062,4 +1066,191 @@ test('resync dispatches words after an emoji that shrinks the text', function (t
       memberId: 'member-id'
     }
   ])
+})
+
+test('resync places an insert at the cursor inside a run of identical characters', function (t) {
+  const p = new Parser({
+    onmention: (mention) => p.setMention(mention, '@bob', 'member-id')
+  })
+
+  p.resync('aa @bo')
+  t.is(p.text, 'aa @bob ')
+
+  p.setPosition(1)
+  p.resync('aaa @bob ')
+
+  t.is(p.text, 'aaa @bob ')
+  t.is(p.position, 2)
+  t.is(p.word, 'aaa')
+  t.alike(p.display, [
+    {
+      type: DISPLAY_TYPES.MENTION,
+      start: 4,
+      end: 8,
+      length: 4,
+      memberId: 'member-id'
+    }
+  ])
+})
+
+test('resync keeps the cursor on the new line after enter at the end of a line', function (t) {
+  const p = new Parser({
+    onmention: (mention) => p.setMention(mention, '@bob', 'member-id')
+  })
+
+  p.resync('a\n@bo')
+  t.is(p.text, 'a\n@bob ')
+
+  p.setPosition(1)
+  p.resync('a\n\n@bob ')
+
+  t.is(p.text, 'a\n\n@bob ')
+  t.is(p.position, 2)
+  t.is(p.word, '')
+  t.alike(p.display, [
+    {
+      type: DISPLAY_TYPES.MENTION,
+      start: 3,
+      end: 7,
+      length: 4,
+      memberId: 'member-id'
+    }
+  ])
+})
+
+test('resync keeps the cursor on the start of a selected range', function (t) {
+  const p = new Parser({
+    onmention: (mention) => p.setMention(mention, '@bob')
+  })
+
+  p.resync('a\n@bo')
+  t.is(p.text, 'a\n@bob ')
+  t.is(p.position, 7)
+  t.alike(p.display, [mention(2, '@bob')])
+
+  p.selectRange(0, 2)
+  p.resync('@bob ')
+  t.is(p.text, '@bob ')
+  t.is(p.position, 0)
+  t.alike(p.display, [mention(0, '@bob')])
+})
+
+test('move to position and backspace', function (t) {
+  const p = new Parser({ text: 'aaaa' })
+  t.is(p.position, 4)
+  t.alike(p.display, [])
+
+  p.setPosition(2)
+  p.resync('aaa')
+  t.is(p.text, 'aaa')
+  t.is(p.position, 1)
+  t.alike(p.display, [])
+})
+
+test('move to position and type', function (t) {
+  const p = new Parser({ text: 'aaaa' })
+  t.is(p.position, 4)
+  t.alike(p.display, [])
+
+  p.setPosition(2)
+  p.resync('aaaaa')
+  t.is(p.text, 'aaaaa')
+  t.is(p.position, 3)
+  t.alike(p.display, [])
+})
+
+test('move to position and paste', function (t) {
+  const p = new Parser({ text: 'aaaa' })
+  t.is(p.position, 4)
+  t.alike(p.display, [])
+
+  p.setPosition(2)
+  p.resync('aaaaaa')
+  t.is(p.text, 'aaaaaa')
+  t.is(p.position, 4)
+  t.alike(p.display, [])
+})
+
+test('select range and backspace', function (t) {
+  const p = new Parser({ text: 'aaaa' })
+  t.is(p.position, 4)
+  t.alike(p.display, [])
+
+  p.selectRange(1, 3)
+  p.resync('aa')
+  t.is(p.text, 'aa')
+  t.is(p.position, 1)
+  t.alike(p.display, [])
+})
+
+test('select range and and type', function (t) {
+  const p = new Parser({ text: 'aaaa' })
+  t.is(p.position, 4)
+  t.alike(p.display, [])
+
+  p.selectRange(1, 3)
+  p.resync('aaa')
+  t.is(p.text, 'aaa')
+  t.is(p.position, 2)
+  t.alike(p.display, [])
+})
+
+test('move to position and paste shorter length', function (t) {
+  const p = new Parser({ text: 'aaaaa' })
+  t.is(p.position, 5)
+  t.alike(p.display, [])
+
+  p.selectRange(1, 4)
+  p.resync('aaaa')
+  t.is(p.text, 'aaaa')
+  t.is(p.position, 3)
+  t.alike(p.display, [])
+})
+
+test('move to position and paste same length', function (t) {
+  const p = new Parser({ text: 'aaaaa' })
+  t.is(p.position, 5)
+  t.alike(p.display, [])
+
+  p.selectRange(1, 4)
+  p.resync('aaaaa')
+  t.is(p.text, 'aaaaa')
+  t.is(p.position, 4)
+  t.alike(p.display, [])
+})
+
+test('move to position and paste greater length', function (t) {
+  const p = new Parser({ text: 'aaaaa' })
+  t.is(p.position, 5)
+  t.alike(p.display, [])
+
+  p.selectRange(1, 4)
+  p.resync('aaaaaa')
+  t.is(p.text, 'aaaaaa')
+  t.is(p.position, 5)
+  t.alike(p.display, [])
+})
+
+test('backspace one of two identical emoji with a collapsed selection', (t) => {
+  const emoji = (start) => ({
+    type: DISPLAY_TYPES.EMOJI,
+    start,
+    end: start + 2,
+    content: 'grinning',
+    length: 2
+  })
+  const p = new Parser({ text: '😀😀', display: [emoji(0), emoji(2)] })
+
+  p.selectRange(2, 2)
+  p.resync('😀')
+  t.is(p.text, '😀')
+  t.is(p.position, 0)
+  t.alike(p.display, [emoji(0)])
+})
+
+test('resolving a token elsewhere must not move the caret', (t) => {
+  const p = new Parser({ text: 'hi :smi' })
+  p.setPosition(0)
+  p.resync('ahi :smi')
+  t.is(p.position, 1)
 })

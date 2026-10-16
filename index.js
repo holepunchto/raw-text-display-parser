@@ -1,5 +1,7 @@
 const { DISPLAY_TYPES } = require('@holepunchto/keet-core-api')
 
+const { EMOJI, MENTION, HTTP_LINK, PEAR_LINK, UNORDERED_LIST } = DISPLAY_TYPES
+
 module.exports = class RawTextDisplayParser {
   constructor(options = {}) {
     const {
@@ -11,7 +13,8 @@ module.exports = class RawTextDisplayParser {
       onpearlink = noop,
       onemoji = noop,
       onclear = noop,
-      ondefaultemoji = noop
+      ondefaultemoji = noop,
+      onlist = noop
     } = options
 
     this.display = display
@@ -25,6 +28,7 @@ module.exports = class RawTextDisplayParser {
     this.onemoji = onemoji
     this.onclear = onclear
     this.ondefaultemoji = ondefaultemoji
+    this.onlist = onlist
     this.start = 0
     this.end = 0
     this.word = ''
@@ -108,14 +112,15 @@ module.exports = class RawTextDisplayParser {
     this._dispatchWord(this.word, this.start, this.end)
   }
 
-  _fireAllWords() {
-    let start = 0
-    while (start < this.text.length) {
-      while (start < this.text.length && isEndWord(this.text[start])) start++
-      if (start >= this.text.length) break
+  _fireAllWords(from, to) {
+    let start = from
+    while (start < Math.min(to, this.text.length)) {
+      const limit = Math.min(to, this.text.length)
+      while (start < limit && isEndWord(this.text[start])) start++
+      if (start >= limit) break
 
       let end = start
-      while (end < this.text.length && !isEndWord(this.text[end])) end++
+      while (end < limit && !isEndWord(this.text[end])) end++
 
       const alreadyCovered = this.display.some(
         (d) => d.start <= start && d.end >= end
@@ -129,6 +134,39 @@ module.exports = class RawTextDisplayParser {
     }
 
     this._updateWord()
+  }
+
+  _fireAllLists(from, to) {
+    let index = getLineEnd(this.text, from + 1)
+
+    let position = this.position
+    while (true) {
+      const start = getLineStart(this.text, index)
+      const end = start + 2
+      if (
+        start >= from &&
+        end < Math.min(to, this.text.length) &&
+        isUnorderedList(this.text.slice(start, end))
+      ) {
+        const alreadyCovered = this.display.some(
+          (d) => d.start <= start && d.end >= end && d.type === UNORDERED_LIST
+        )
+        if (!alreadyCovered) {
+          const length = this.text.length
+          this.onlist(start, end, UNORDERED_LIST)
+          if (end < position) position += this.text.length - length
+
+          // the host may have grown or shrunk this.text, find the line's end again from its start
+          index = getLineEnd(this.text, start)
+        }
+      }
+
+      if (index >= Math.min(to, this.text.length)) break
+
+      index = getLineEnd(this.text, index + 1)
+    }
+
+    this.position = position
   }
 
   _dispatchWord(word, start, end) {
@@ -168,9 +206,7 @@ module.exports = class RawTextDisplayParser {
         const emojiEnd = emojiStart + match[0].length
         const isMarked = this.display.some(
           (d) =>
-            d.type === DISPLAY_TYPES.EMOJI &&
-            d.start === emojiStart &&
-            d.end === emojiEnd
+            d.type === EMOJI && d.start === emojiStart && d.end === emojiEnd
         )
         if (isMarked) continue
         this.word = match[0]
@@ -207,7 +243,7 @@ module.exports = class RawTextDisplayParser {
 
     for (let i = this.position - 1; i >= 0; i--) {
       const ch = this.text[i]
-      if (ch === ' ' || ch === '\n' || ch === '\t') {
+      if (isEndWord(ch)) {
         start = i + 1
         break
       }
@@ -215,7 +251,7 @@ module.exports = class RawTextDisplayParser {
 
     for (let i = this.position; i < this.text.length; i++) {
       const ch = this.text[i]
-      if (ch === ' ' || ch === '\n' || ch === '\t') {
+      if (isEndWord(ch)) {
         end = i
         break
       }
@@ -261,8 +297,65 @@ module.exports = class RawTextDisplayParser {
     }
   }
 
+  _removeText(start, end, replacer = '') {
+    const position = this.position
+
+    this.selectRange(start, end)
+    this.appendText(replacer)
+
+    if (position <= start) this.position = position
+    else if (position > end) {
+      this.position = position - (end - start) + replacer.length
+    }
+
+    this._updateWord()
+  }
+
+  _fireList(inserted) {
+    // a marker that is no longer at the start of a line is not an item anymore
+    for (let i = this.display.length - 1; i >= 0; i--) {
+      const d = this.display[i]
+      if (
+        d.type === UNORDERED_LIST &&
+        d.start > 0 &&
+        this.text[d.start - 1] !== NewLine
+      ) {
+        this._removeText(d.start, d.start + 1, UnorderedListInputMark)
+      }
+    }
+
+    const lineStart = getLineStart(this.text, this.position)
+    const line = this.text.slice(lineStart, this.position)
+
+    if (isUnorderedList(line)) {
+      return this.onlist(lineStart, this.position, UNORDERED_LIST)
+    }
+
+    if (inserted !== NewLine) return
+
+    // enter on a list item continues the list on the new line
+    const prevStart = getLineStart(this.text, lineStart - 1)
+    const item = this.display.find(
+      (d) => d.start === prevStart && d.type === UNORDERED_LIST
+    )
+
+    if (!item) return
+
+    // enter on an empty item ends the list: drop its marker and the newline
+    const atLineEnd =
+      this.position === this.text.length || this.text[this.position] === NewLine
+    if (item.end === lineStart - 1 && atLineEnd) {
+      return this._removeText(item.start, this.position)
+    }
+
+    this.onlist(this.position, this.position, item.type)
+  }
+
   resync(text) {
-    const shared = Math.min(this.text.length, text.length)
+    const range =
+      this.range && this.range.end > this.range.start ? this.range : null
+    const removed = range ? 0 : Math.max(0, this.text.length - text.length)
+    const shared = this.position - removed
     const display = []
 
     let end = 0
@@ -273,37 +366,70 @@ module.exports = class RawTextDisplayParser {
 
     // a deleted emoji can share leading code units with the next one (surrogate half,
     // base emoji before a skin tone); a prefix ending inside it drops the next display
-    const split = this.display.find((d) => d.start < end && end < d.end)
+    const split = this.display.find(
+      (d) => d.type === EMOJI && d.start < end && end < d.end
+    )
     if (split) end = split.start
 
+    const startNewLimit = range
+      ? range.end - (this.text.length - text.length)
+      : end
+    const starOldLimit = range ? range.end : end
     let startNew = text.length
     let startOld = this.text.length
 
     while (
-      startNew > end &&
-      startOld > end &&
+      startNew > startNewLimit &&
+      startOld > starOldLimit &&
       this.text[startOld - 1] === text[startNew - 1]
     ) {
       startNew--
       startOld--
     }
 
+    let _text = text
+    let extendedEnd = end
+    let extendedStartNew = startNew
+
     for (const d of this.display) {
       if (d.end <= end) display.push(d)
-      if (startOld <= d.start)
+      else if (startOld <= d.start) {
         display.push({
           ...d,
           start: d.start + (startNew - startOld),
           end: d.end + (startNew - startOld)
         })
+      } else if (
+        d.type === UNORDERED_LIST &&
+        d.start < end &&
+        this.text[d.start] === UnorderedListOutMark
+      ) {
+        // the edit broke the marker but left its bullet: back to `-`
+        _text =
+          text.slice(0, d.start) +
+          UnorderedListInputMark +
+          text.slice(d.start + 1)
+      } else if (
+        [HTTP_LINK, PEAR_LINK].includes(d.type) &&
+        d.start < extendedEnd
+      ) {
+        extendedEnd = Math.min(extendedEnd, d.start)
+        extendedStartNew = Math.max(
+          extendedStartNew,
+          d.end + (startNew - startOld)
+        )
+      }
     }
 
-    this.position = this.text.length ? startNew : text.length
-    this.text = text
+    this.position = this.text.length ? startNew : _text.length
+    this.text = _text
     this.display = display
     this.range = null
 
-    this._fireAllWords()
+    this._fireList(_text.slice(end, startNew))
+    startNew > end && this._fireAllLists(end, startNew)
+    extendedStartNew > extendedEnd &&
+      this._fireAllWords(extendedEnd, extendedStartNew)
   }
 
   setEmoji(input, code, emoji, isDefaultEmoji) {
@@ -312,7 +438,7 @@ module.exports = class RawTextDisplayParser {
     const start = this.start
     // Check if we already have an emoji registered at this exact spot
     const existing = this.display.find(
-      (d) => d.start === start && d.type === DISPLAY_TYPES.EMOJI
+      (d) => d.start === start && d.type === EMOJI
     )
     // We skip appending the space to break the loop.
     if (isDefaultEmoji && existing) {
@@ -326,7 +452,7 @@ module.exports = class RawTextDisplayParser {
         this.position === this.end &&
         this.end === this.text.length
       ) {
-        this.appendText(' ')
+        this.appendText(BlankSpace)
       }
     } else if (emoji) {
       this.selectRange(this.start, this.end)
@@ -334,12 +460,12 @@ module.exports = class RawTextDisplayParser {
     } else if (input !== code) {
       this.selectRange(this.start, this.end)
       const ensureTrailingSpace = !isEndWord(this.text[this.end])
-      this.appendText(`${code}${ensureTrailingSpace ? ' ' : ''}`)
+      this.appendText(`${code}${ensureTrailingSpace ? BlankSpace : ''}`)
     }
 
     const length = emoji ? emoji.length : code.length
     const upd = {
-      type: DISPLAY_TYPES.EMOJI,
+      type: EMOJI,
       start,
       end: start + length,
       content: code[0] === ':' ? code.slice(1, -1) : code,
@@ -356,7 +482,7 @@ module.exports = class RawTextDisplayParser {
     if (start < 0 || end <= start || end > this.text.length) return false
 
     const upd = {
-      type: DISPLAY_TYPES.EMOJI,
+      type: EMOJI,
       start,
       end,
       content: shortcode,
@@ -376,11 +502,11 @@ module.exports = class RawTextDisplayParser {
     if (input !== name) {
       this.selectRange(this.start, this.end)
       const ensureTrailingSpace = !isEndWord(this.text[this.end])
-      this.appendText(`${name}${ensureTrailingSpace ? ' ' : ''}`)
+      this.appendText(`${name}${ensureTrailingSpace ? BlankSpace : ''}`)
     }
 
     const upd = {
-      type: DISPLAY_TYPES.MENTION,
+      type: MENTION,
       start,
       end: start + name.length,
       length: name.length,
@@ -397,7 +523,7 @@ module.exports = class RawTextDisplayParser {
     if (this.word !== input) return false
 
     const upd = {
-      type: DISPLAY_TYPES.HTTP_LINK,
+      type: HTTP_LINK,
       start: this.start,
       end: this.end,
       content: link,
@@ -414,7 +540,7 @@ module.exports = class RawTextDisplayParser {
     if (this.word !== link) return false
 
     const upd = {
-      type: DISPLAY_TYPES.PEAR_LINK,
+      type: PEAR_LINK,
       start: this.start,
       end: this.end,
       content: link,
@@ -424,6 +550,27 @@ module.exports = class RawTextDisplayParser {
     this._clearPrevious(upd.start, upd.end)
     this._insertDisplay(upd)
 
+    return true
+  }
+
+  setList(start, end, type) {
+    if (start < 0 || end < start || end > this.text.length) return false
+
+    const content =
+      type === UNORDERED_LIST ? `${UnorderedListOutMark}${BlankSpace}` : ''
+    this.selectRange(start, end)
+    this.appendText(content)
+
+    const upd = {
+      type,
+      start,
+      end: start + content.length,
+      content,
+      length: content.length
+    }
+
+    this._clearPrevious(upd.start, upd.end)
+    this._insertDisplay(upd)
     return true
   }
 
@@ -466,8 +613,28 @@ function isDefaultEmoji(word) {
   return /\p{Extended_Pictographic}/u.test(word)
 }
 
+function isUnorderedList(mark) {
+  return mark === `${UnorderedListInputMark}${BlankSpace}`
+}
+
 function noop() {}
 
 function isEndWord(c) {
-  return c === ' ' || c === '\n' || c === '\t'
+  return c === BlankSpace || c === NewLine || c === '\t'
 }
+
+function getLineStart(text, position) {
+  while (position > 0 && text[position - 1] !== NewLine) position--
+  return position
+}
+
+function getLineEnd(text, start) {
+  const index = text.indexOf(NewLine, start)
+  if (index === -1) return text.length
+  return index
+}
+
+const BlankSpace = ' '
+const NewLine = '\n'
+const UnorderedListInputMark = '-'
+const UnorderedListOutMark = '●'
