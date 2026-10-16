@@ -32,6 +32,7 @@ module.exports = class RawTextDisplayParser {
     this.start = 0
     this.end = 0
     this.word = ''
+    this._isInTextWord = false
   }
 
   reset(options = {}) {
@@ -181,10 +182,46 @@ module.exports = class RawTextDisplayParser {
     } else if (isEmoji(word)) {
       this.onemoji(word)
     } else if (isDefaultEmoji(word)) {
-      this.ondefaultemoji(word)
+      this._dispatchDefaultEmojis(word, start, end)
     } else {
       this.onclear(word)
     }
+  }
+
+  _dispatchDefaultEmojis(word, start, end) {
+    let matches = [...word.matchAll(EmojiSequence)]
+    const isEmojiOnly = matches.map((m) => m[0]).join('') === word
+    if (!isEmojiOnly) matches = [...word.matchAll(EmojiStyleSequence)]
+    if (isEmojiOnly ? matches.length < 2 : matches.length === 0) {
+      this.ondefaultemoji(word)
+      return
+    }
+
+    const text = this.text
+    this._isInTextWord = !isEmojiOnly
+    try {
+      for (const match of matches) {
+        const emojiStart = start + match.index
+        const emojiEnd = emojiStart + match[0].length
+        const isMarked = this.display.some(
+          (d) =>
+            d.type === DISPLAY_TYPES.EMOJI &&
+            d.start === emojiStart &&
+            d.end === emojiEnd
+        )
+        if (isMarked) continue
+        this.word = match[0]
+        this.start = emojiStart
+        this.end = emojiEnd
+        this.ondefaultemoji(match[0])
+        if (this.text !== text) return
+      }
+    } finally {
+      this._isInTextWord = false
+    }
+    this.word = word
+    this.start = start
+    this.end = end
   }
 
   flush(text = this.text) {
@@ -399,7 +436,11 @@ module.exports = class RawTextDisplayParser {
 
     if (isDefaultEmoji) {
       // appending while the cursor is before the word re-dispatches it forever
-      if (this.position === this.end && !isEndWord(this.text[this.end])) {
+      if (
+        !this._isInTextWord &&
+        this.position === this.end &&
+        this.end === this.text.length
+      ) {
         this.appendText(BlankSpace)
       }
     } else if (emoji) {
@@ -549,6 +590,13 @@ function isLink(word) {
 function isEmoji(word) {
   return word[0] === ':'
 }
+
+const EmojiSequence =
+  /\p{Extended_Pictographic}(?:\p{Emoji_Modifier}|\u{FE0F}|[\u{E0020}-\u{E007F}])*(?:\u{200D}\p{Extended_Pictographic}(?:\p{Emoji_Modifier}|\u{FE0F})*)*/gu
+
+// next to text, text-style symbols (™) need VS16 or a sequence
+const EmojiStyleSequence =
+  /(?:(?=\p{Extended_Pictographic})\p{Emoji_Presentation}(?!\u{FE0E})|\p{Extended_Pictographic}(?=\u{FE0F}|\p{Emoji_Modifier}|\u{200D}))(?:\p{Emoji_Modifier}|\u{FE0F}|[\u{E0020}-\u{E007F}])*(?:\u{200D}\p{Extended_Pictographic}(?:\p{Emoji_Modifier}|\u{FE0F})*)*/gu
 
 function isDefaultEmoji(word) {
   return /\p{Extended_Pictographic}/u.test(word)

@@ -416,14 +416,28 @@ test('resync test modify emoji', function (t) {
 test('resync deleting one emoji keep one emoji', function (t) {
   const p = new Parser({
     ondefaultemoji: (word) => {
-      if (word.length > 2) return
       p.setEmoji(word, 'grinning', word, true)
     }
   })
 
   p.resync('😀😀 ')
   t.is(p.text, '😀😀 ')
-  t.alike(p.display, [])
+  t.alike(p.display, [
+    {
+      type: DISPLAY_TYPES.EMOJI,
+      start: 0,
+      end: 2,
+      content: 'grinning',
+      length: 2
+    },
+    {
+      type: DISPLAY_TYPES.EMOJI,
+      start: 2,
+      end: 4,
+      content: 'grinning',
+      length: 2
+    }
+  ])
 
   p.resync('😀 ')
   t.is(p.text, '😀 ')
