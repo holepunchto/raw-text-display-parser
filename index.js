@@ -205,9 +205,7 @@ module.exports = class RawTextDisplayParser {
         const emojiEnd = emojiStart + match[0].length
         const isMarked = this.display.some(
           (d) =>
-            d.type === DISPLAY_TYPES.EMOJI &&
-            d.start === emojiStart &&
-            d.end === emojiEnd
+            d.type === EMOJI && d.start === emojiStart && d.end === emojiEnd
         )
         if (isMarked) continue
         this.word = match[0]
