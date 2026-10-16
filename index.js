@@ -285,13 +285,13 @@ module.exports = class RawTextDisplayParser {
     const startNewLimit = range
       ? range.end - (this.text.length - text.length)
       : end
-    const starOldLimit = range ? range.end : end
+    const startOldLimit = range ? range.end : end
     let startNew = text.length
     let startOld = this.text.length
 
     while (
       startNew > startNewLimit &&
-      startOld > starOldLimit &&
+      startOld > startOldLimit &&
       this.text[startOld - 1] === text[startNew - 1]
     ) {
       startNew--
