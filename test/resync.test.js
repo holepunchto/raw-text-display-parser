@@ -1430,3 +1430,19 @@ test('resync re-dispatches a word extending a mention display', (t) => {
   t.is(p.position, 5)
   t.alike(p.display, [mention(0, '@bobx', 'member-id-x')])
 })
+
+test('resync - typing at the start of a collapsed selection keeps the mention', (t) => {
+  const mentions = []
+  const p = new Parser({
+    text: '@bob hi',
+    display: [mention(0, '@bob')],
+    onmention: (word) => mentions.push(word)
+  })
+
+  p.setPosition(0)
+  p.resync(' @bob hi')
+
+  t.is(p.position, 1)
+  t.alike(p.display, [mention(1, '@bob')])
+  t.alike(mentions, [])
+})
