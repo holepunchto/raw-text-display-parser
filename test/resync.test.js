@@ -1446,3 +1446,18 @@ test('resync - typing at the start of a collapsed selection keeps the mention', 
   t.alike(p.display, [mention(1, '@bob')])
   t.alike(mentions, [])
 })
+
+test('resync - deleting the tail of a mention re-dispatches what is left', (t) => {
+  const mentions = []
+  const p = new Parser({
+    text: 'hey @John x',
+    display: [mention(4, '@John')],
+    onmention: (word) => mentions.push(word)
+  })
+
+  p.setPosition(9)
+  p.resync('hey @Jo x')
+
+  t.alike(p.display, [])
+  t.alike(mentions, ['@Jo'])
+})
