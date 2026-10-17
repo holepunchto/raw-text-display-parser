@@ -342,6 +342,7 @@ test('mention at the start, before another mentioned', function (t) {
     }
   ])
 
+  p.setPosition(0)
   p.resync('@a @alice ')
   t.is(p.text, '@alice @alice ')
   t.is(p.position, 6)

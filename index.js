@@ -1,5 +1,7 @@
 const { DISPLAY_TYPES } = require('@holepunchto/keet-core-api')
 
+const { EMOJI, MENTION, HTTP_LINK, PEAR_LINK } = DISPLAY_TYPES
+
 module.exports = class RawTextDisplayParser {
   constructor(options = {}) {
     const {
@@ -108,20 +110,28 @@ module.exports = class RawTextDisplayParser {
     this._dispatchWord(this.word, this.start, this.end)
   }
 
-  _fireAllWords() {
-    let start = 0
-    while (start < this.text.length) {
-      while (start < this.text.length && isEndWord(this.text[start])) start++
-      if (start >= this.text.length) break
+  _fireAllWords(_from, _to) {
+    // widen to whole words so an edit never dispatches a word fragment
+    let start = _from
+    let to = Math.min(_to, this.text.length)
+    while (start > 0 && !isEndWord(this.text[start - 1])) start--
+    while (to < this.text.length && !isEndWord(this.text[to])) to++
+
+    while (start < to) {
+      while (start < to && isEndWord(this.text[start])) start++
+      if (start >= to) break
 
       let end = start
-      while (end < this.text.length && !isEndWord(this.text[end])) end++
+      while (end < to && !isEndWord(this.text[end])) end++
 
       const alreadyCovered = this.display.some(
         (d) => d.start <= start && d.end >= end
       )
       if (!alreadyCovered) {
+        const oldLength = this.text.length
         this._dispatchWord(this.text.slice(start, end), start, end)
+        // a callback can replace the word, shifting the rest of the range
+        to += this.text.length - oldLength
         start = this.end
       } else {
         start = end
@@ -168,9 +178,7 @@ module.exports = class RawTextDisplayParser {
         const emojiEnd = emojiStart + match[0].length
         const isMarked = this.display.some(
           (d) =>
-            d.type === DISPLAY_TYPES.EMOJI &&
-            d.start === emojiStart &&
-            d.end === emojiEnd
+            d.type === EMOJI && d.start === emojiStart && d.end === emojiEnd
         )
         if (isMarked) continue
         this.word = match[0]
@@ -207,7 +215,7 @@ module.exports = class RawTextDisplayParser {
 
     for (let i = this.position - 1; i >= 0; i--) {
       const ch = this.text[i]
-      if (ch === ' ' || ch === '\n' || ch === '\t') {
+      if (isEndWord(ch)) {
         start = i + 1
         break
       }
@@ -215,7 +223,7 @@ module.exports = class RawTextDisplayParser {
 
     for (let i = this.position; i < this.text.length; i++) {
       const ch = this.text[i]
-      if (ch === ' ' || ch === '\n' || ch === '\t') {
+      if (isEndWord(ch)) {
         end = i
         break
       }
@@ -262,7 +270,10 @@ module.exports = class RawTextDisplayParser {
   }
 
   resync(text) {
-    const shared = Math.min(this.text.length, text.length)
+    const range =
+      this.range && this.range.end > this.range.start ? this.range : null
+    const removed = range ? 0 : Math.max(0, this.text.length - text.length)
+    const shared = this.position - removed
     const display = []
 
     let end = 0
@@ -273,29 +284,40 @@ module.exports = class RawTextDisplayParser {
 
     // a deleted emoji can share leading code units with the next one (surrogate half,
     // base emoji before a skin tone); a prefix ending inside it drops the next display
-    const split = this.display.find((d) => d.start < end && end < d.end)
+    const split = this.display.find(
+      (d) => d.type === EMOJI && d.start < end && end < d.end
+    )
     if (split) end = split.start
 
+    const startNewLimit = range
+      ? range.end - (this.text.length - text.length)
+      : end
+    const startOldLimit = range ? range.end : end
     let startNew = text.length
     let startOld = this.text.length
 
     while (
-      startNew > end &&
-      startOld > end &&
+      startNew > startNewLimit &&
+      startOld > startOldLimit &&
       this.text[startOld - 1] === text[startNew - 1]
     ) {
       startNew--
       startOld--
     }
 
+    const delta = startNew - startOld
+    let from = end
+    let to = startNew
+
     for (const d of this.display) {
       if (d.end <= end) display.push(d)
-      if (startOld <= d.start)
-        display.push({
-          ...d,
-          start: d.start + (startNew - startOld),
-          end: d.end + (startNew - startOld)
-        })
+      else if (startOld <= d.start) {
+        display.push({ ...d, start: d.start + delta, end: d.end + delta })
+      } else if (d.start < from) {
+        // the edit overlaps this display, re-dispatch everything it covered
+        from = Math.min(from, d.start)
+        to = Math.max(to, d.end + delta)
+      }
     }
 
     this.position = this.text.length ? startNew : text.length
@@ -303,7 +325,7 @@ module.exports = class RawTextDisplayParser {
     this.display = display
     this.range = null
 
-    this._fireAllWords()
+    this._fireAllWords(from, to)
   }
 
   setEmoji(input, code, emoji, isDefaultEmoji) {
@@ -312,7 +334,7 @@ module.exports = class RawTextDisplayParser {
     const start = this.start
     // Check if we already have an emoji registered at this exact spot
     const existing = this.display.find(
-      (d) => d.start === start && d.type === DISPLAY_TYPES.EMOJI
+      (d) => d.start === start && d.type === EMOJI
     )
     // We skip appending the space to break the loop.
     if (isDefaultEmoji && existing) {
@@ -326,7 +348,7 @@ module.exports = class RawTextDisplayParser {
         this.position === this.end &&
         this.end === this.text.length
       ) {
-        this.appendText(' ')
+        this.appendText(BlankSpace)
       }
     } else if (emoji) {
       this.selectRange(this.start, this.end)
@@ -334,12 +356,12 @@ module.exports = class RawTextDisplayParser {
     } else if (input !== code) {
       this.selectRange(this.start, this.end)
       const ensureTrailingSpace = !isEndWord(this.text[this.end])
-      this.appendText(`${code}${ensureTrailingSpace ? ' ' : ''}`)
+      this.appendText(`${code}${ensureTrailingSpace ? BlankSpace : ''}`)
     }
 
     const length = emoji ? emoji.length : code.length
     const upd = {
-      type: DISPLAY_TYPES.EMOJI,
+      type: EMOJI,
       start,
       end: start + length,
       content: code[0] === ':' ? code.slice(1, -1) : code,
@@ -356,7 +378,7 @@ module.exports = class RawTextDisplayParser {
     if (start < 0 || end <= start || end > this.text.length) return false
 
     const upd = {
-      type: DISPLAY_TYPES.EMOJI,
+      type: EMOJI,
       start,
       end,
       content: shortcode,
@@ -376,11 +398,11 @@ module.exports = class RawTextDisplayParser {
     if (input !== name) {
       this.selectRange(this.start, this.end)
       const ensureTrailingSpace = !isEndWord(this.text[this.end])
-      this.appendText(`${name}${ensureTrailingSpace ? ' ' : ''}`)
+      this.appendText(`${name}${ensureTrailingSpace ? BlankSpace : ''}`)
     }
 
     const upd = {
-      type: DISPLAY_TYPES.MENTION,
+      type: MENTION,
       start,
       end: start + name.length,
       length: name.length,
@@ -397,7 +419,7 @@ module.exports = class RawTextDisplayParser {
     if (this.word !== input) return false
 
     const upd = {
-      type: DISPLAY_TYPES.HTTP_LINK,
+      type: HTTP_LINK,
       start: this.start,
       end: this.end,
       content: link,
@@ -414,7 +436,7 @@ module.exports = class RawTextDisplayParser {
     if (this.word !== link) return false
 
     const upd = {
-      type: DISPLAY_TYPES.PEAR_LINK,
+      type: PEAR_LINK,
       start: this.start,
       end: this.end,
       content: link,
@@ -469,5 +491,8 @@ function isDefaultEmoji(word) {
 function noop() {}
 
 function isEndWord(c) {
-  return c === ' ' || c === '\n' || c === '\t'
+  return c === BlankSpace || c === NewLine || c === '\t'
 }
+
+const BlankSpace = ' '
+const NewLine = '\n'
