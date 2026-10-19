@@ -1,7 +1,7 @@
 const test = require('brittle')
 
 const Parser = require('..')
-const { DISPLAY_TYPES } = require('@holepunchto/keet-core-api')
+const { DISPLAY_TYPES } = require('../utils')
 
 test('setEmoji normally', (t) => {
   const p = new Parser()

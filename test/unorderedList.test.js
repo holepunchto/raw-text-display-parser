@@ -1,15 +1,15 @@
 const test = require('brittle')
 
 const Parser = require('..')
-const { DISPLAY_TYPES } = require('@holepunchto/keet-core-api')
-const { HTTP_LINK, MENTION, EMOJI, UNORDERED_LIST } = DISPLAY_TYPES
+const { DISPLAY_TYPES } = require('../utils')
+const { HTTP_LINK, MENTION, EMOJI, UNORDERED_LIST_ITEM } = DISPLAY_TYPES
 
 const unorderedListDisplay = (start) => ({
   start,
   end: start + 2,
   content: '● ',
   length: 2,
-  type: UNORDERED_LIST
+  type: UNORDERED_LIST_ITEM
 })
 
 const makeParser = ({ text = '', display = [] }) => {

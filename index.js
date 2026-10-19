@@ -1,6 +1,25 @@
-const { DISPLAY_TYPES } = require('@holepunchto/keet-core-api')
+const {
+  DISPLAY_TYPES,
+  BlankSpace,
+  NewLine,
+  UnorderedListInputMark,
+  UnorderedListOutMark,
+  overlaps,
+  isMention,
+  isLink,
+  isEmoji,
+  EmojiSequence,
+  EmojiStyleSequence,
+  isDefaultEmoji,
+  isUnorderedList,
+  noop,
+  isEndWord,
+  getLineStart,
+  getLineEnd
+} = require('./utils')
 
-const { EMOJI, MENTION, HTTP_LINK, PEAR_LINK, UNORDERED_LIST } = DISPLAY_TYPES
+const { EMOJI, MENTION, HTTP_LINK, PEAR_LINK, UNORDERED_LIST_ITEM } =
+  DISPLAY_TYPES
 
 module.exports = class RawTextDisplayParser {
   constructor(options = {}) {
@@ -156,11 +175,12 @@ module.exports = class RawTextDisplayParser {
         isUnorderedList(this.text.slice(start, end))
       ) {
         const alreadyCovered = this.display.some(
-          (d) => d.start <= start && d.end >= end && d.type === UNORDERED_LIST
+          (d) =>
+            d.start <= start && d.end >= end && d.type === UNORDERED_LIST_ITEM
         )
         if (!alreadyCovered) {
           const length = this.text.length
-          this.onlist(start, end, UNORDERED_LIST)
+          this.onlist(start, end, UNORDERED_LIST_ITEM)
           if (end < position) position += this.text.length - length
 
           // the host may have grown or shrunk this.text, find the line's end again from its start
@@ -323,7 +343,7 @@ module.exports = class RawTextDisplayParser {
     for (let i = this.display.length - 1; i >= 0; i--) {
       const d = this.display[i]
       if (
-        d.type === UNORDERED_LIST &&
+        d.type === UNORDERED_LIST_ITEM &&
         d.start > 0 &&
         this.text[d.start - 1] !== NewLine
       ) {
@@ -335,7 +355,7 @@ module.exports = class RawTextDisplayParser {
     const line = this.text.slice(lineStart, this.position)
 
     if (isUnorderedList(line)) {
-      return this.onlist(lineStart, this.position, UNORDERED_LIST)
+      return this.onlist(lineStart, this.position, UNORDERED_LIST_ITEM)
     }
 
     if (inserted !== NewLine) return
@@ -343,7 +363,7 @@ module.exports = class RawTextDisplayParser {
     // enter on a list item continues the list on the new line
     const prevStart = getLineStart(this.text, lineStart - 1)
     const item = this.display.find(
-      (d) => d.start === prevStart && d.type === UNORDERED_LIST
+      (d) => d.start === prevStart && d.type === UNORDERED_LIST_ITEM
     )
 
     if (!item) return
@@ -404,7 +424,7 @@ module.exports = class RawTextDisplayParser {
       else if (startOld <= d.start) {
         display.push({ ...d, start: d.start + delta, end: d.end + delta })
       } else if (
-        d.type === UNORDERED_LIST &&
+        d.type === UNORDERED_LIST_ITEM &&
         d.start < end &&
         this.text[d.start] === UnorderedListOutMark
       ) {
@@ -555,7 +575,7 @@ module.exports = class RawTextDisplayParser {
     if (start < 0 || end < start || end > this.text.length) return false
 
     const content =
-      type === UNORDERED_LIST ? `${UnorderedListOutMark}${BlankSpace}` : ''
+      type === UNORDERED_LIST_ITEM ? `${UnorderedListOutMark}${BlankSpace}` : ''
     this.selectRange(start, end)
     this.appendText(content)
 
@@ -576,63 +596,3 @@ module.exports = class RawTextDisplayParser {
     return word.toLowerCase().startsWith(`${this.protocol}://`)
   }
 }
-
-function overlaps(a, start, end) {
-  if (a.start <= start && start < a.end) return true
-  if (start <= a.start && a.start < end) return true
-  return false
-}
-
-function isMention(word) {
-  return word[0] === '@'
-}
-
-function isLink(word) {
-  word = word.toLowerCase()
-  return (
-    word.startsWith('http://') ||
-    word.startsWith('https://') ||
-    word.startsWith('www.')
-  )
-}
-
-function isEmoji(word) {
-  return word[0] === ':'
-}
-
-const EmojiSequence =
-  /\p{Extended_Pictographic}(?:\p{Emoji_Modifier}|\u{FE0F}|[\u{E0020}-\u{E007F}])*(?:\u{200D}\p{Extended_Pictographic}(?:\p{Emoji_Modifier}|\u{FE0F})*)*/gu
-
-// next to text, text-style symbols (™) need VS16 or a sequence
-const EmojiStyleSequence =
-  /(?:(?=\p{Extended_Pictographic})\p{Emoji_Presentation}(?!\u{FE0E})|\p{Extended_Pictographic}(?=\u{FE0F}|\p{Emoji_Modifier}|\u{200D}))(?:\p{Emoji_Modifier}|\u{FE0F}|[\u{E0020}-\u{E007F}])*(?:\u{200D}\p{Extended_Pictographic}(?:\p{Emoji_Modifier}|\u{FE0F})*)*/gu
-
-function isDefaultEmoji(word) {
-  return /\p{Extended_Pictographic}/u.test(word)
-}
-
-function isUnorderedList(mark) {
-  return mark === `${UnorderedListInputMark}${BlankSpace}`
-}
-
-function noop() {}
-
-function isEndWord(c) {
-  return c === BlankSpace || c === NewLine || c === '\t'
-}
-
-function getLineStart(text, position) {
-  while (position > 0 && text[position - 1] !== NewLine) position--
-  return position
-}
-
-function getLineEnd(text, start) {
-  const index = text.indexOf(NewLine, start)
-  if (index === -1) return text.length
-  return index
-}
-
-const BlankSpace = ' '
-const NewLine = '\n'
-const UnorderedListInputMark = '-'
-const UnorderedListOutMark = '●'
