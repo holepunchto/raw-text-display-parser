@@ -1,6 +1,6 @@
 const { DISPLAY_TYPES } = require('@holepunchto/keet-core-api')
 
-const { EMOJI, MENTION, HTTP_LINK, PEAR_LINK } = DISPLAY_TYPES
+const { EMOJI, MENTION, HTTP_LINK, PEAR_LINK, UNORDERED_LIST } = DISPLAY_TYPES
 
 module.exports = class RawTextDisplayParser {
   constructor(options = {}) {
@@ -13,7 +13,8 @@ module.exports = class RawTextDisplayParser {
       onpearlink = noop,
       onemoji = noop,
       onclear = noop,
-      ondefaultemoji = noop
+      ondefaultemoji = noop,
+      onlist = noop
     } = options
 
     this.display = display
@@ -27,6 +28,7 @@ module.exports = class RawTextDisplayParser {
     this.onemoji = onemoji
     this.onclear = onclear
     this.ondefaultemoji = ondefaultemoji
+    this.onlist = onlist
     this.start = 0
     this.end = 0
     this.word = ''
@@ -139,6 +141,39 @@ module.exports = class RawTextDisplayParser {
     }
 
     this._updateWord()
+  }
+
+  _fireAllLists(from, to) {
+    let index = getLineEnd(this.text, from + 1)
+
+    let position = this.position
+    while (true) {
+      const start = getLineStart(this.text, index)
+      const end = start + 2
+      if (
+        start >= from &&
+        end < Math.min(to, this.text.length) &&
+        isUnorderedList(this.text.slice(start, end))
+      ) {
+        const alreadyCovered = this.display.some(
+          (d) => d.start <= start && d.end >= end && d.type === UNORDERED_LIST
+        )
+        if (!alreadyCovered) {
+          const length = this.text.length
+          this.onlist(start, end, UNORDERED_LIST)
+          if (end < position) position += this.text.length - length
+
+          // the host may have grown or shrunk this.text, find the line's end again from its start
+          index = getLineEnd(this.text, start)
+        }
+      }
+
+      if (index >= Math.min(to, this.text.length)) break
+
+      index = getLineEnd(this.text, index + 1)
+    }
+
+    this.position = position
   }
 
   _dispatchWord(word, start, end) {
@@ -269,6 +304,60 @@ module.exports = class RawTextDisplayParser {
     }
   }
 
+  _removeText(start, end, replacer = '') {
+    const position = this.position
+
+    this.selectRange(start, end)
+    this.appendText(replacer)
+
+    if (position <= start) this.position = position
+    else if (position > end) {
+      this.position = position - (end - start) + replacer.length
+    }
+
+    this._updateWord()
+  }
+
+  _fireList(inserted) {
+    // a marker that is no longer at the start of a line is not an item anymore
+    for (let i = this.display.length - 1; i >= 0; i--) {
+      const d = this.display[i]
+      if (
+        d.type === UNORDERED_LIST &&
+        d.start > 0 &&
+        this.text[d.start - 1] !== NewLine
+      ) {
+        this._removeText(d.start, d.start + 1, UnorderedListInputMark)
+      }
+    }
+
+    const lineStart = getLineStart(this.text, this.position)
+    const line = this.text.slice(lineStart, this.position)
+
+    if (isUnorderedList(line)) {
+      return this.onlist(lineStart, this.position, UNORDERED_LIST)
+    }
+
+    if (inserted !== NewLine) return
+
+    // enter on a list item continues the list on the new line
+    const prevStart = getLineStart(this.text, lineStart - 1)
+    const item = this.display.find(
+      (d) => d.start === prevStart && d.type === UNORDERED_LIST
+    )
+
+    if (!item) return
+
+    // enter on an empty item ends the list: drop its marker and the newline
+    const atLineEnd =
+      this.position === this.text.length || this.text[this.position] === NewLine
+    if (item.end === lineStart - 1 && atLineEnd) {
+      return this._removeText(item.start, this.position)
+    }
+
+    this.onlist(this.position, this.position, item.type)
+  }
+
   resync(text) {
     const range =
       this.range && this.range.end > this.range.start ? this.range : null
@@ -305,6 +394,7 @@ module.exports = class RawTextDisplayParser {
       startOld--
     }
 
+    let _text = text
     const delta = startNew - startOld
     let from = end
     let to = startNew
@@ -313,6 +403,16 @@ module.exports = class RawTextDisplayParser {
       if (d.end <= end) display.push(d)
       else if (startOld <= d.start) {
         display.push({ ...d, start: d.start + delta, end: d.end + delta })
+      } else if (
+        d.type === UNORDERED_LIST &&
+        d.start < end &&
+        this.text[d.start] === UnorderedListOutMark
+      ) {
+        // the edit broke the marker but left its bullet: back to `-`
+        _text =
+          text.slice(0, d.start) +
+          UnorderedListInputMark +
+          text.slice(d.start + 1)
       } else if (d.start < from) {
         // the edit overlaps this display, re-dispatch everything it covered
         from = Math.min(from, d.start)
@@ -320,11 +420,13 @@ module.exports = class RawTextDisplayParser {
       }
     }
 
-    this.position = this.text.length ? startNew : text.length
-    this.text = text
+    this.position = this.text.length ? startNew : _text.length
+    this.text = _text
     this.display = display
     this.range = null
 
+    this._fireList(_text.slice(end, startNew))
+    startNew > end && this._fireAllLists(end, startNew)
     this._fireAllWords(from, to)
   }
 
@@ -449,6 +551,27 @@ module.exports = class RawTextDisplayParser {
     return true
   }
 
+  setList(start, end, type) {
+    if (start < 0 || end < start || end > this.text.length) return false
+
+    const content =
+      type === UNORDERED_LIST ? `${UnorderedListOutMark}${BlankSpace}` : ''
+    this.selectRange(start, end)
+    this.appendText(content)
+
+    const upd = {
+      type,
+      start,
+      end: start + content.length,
+      content,
+      length: content.length
+    }
+
+    this._clearPrevious(upd.start, upd.end)
+    this._insertDisplay(upd)
+    return true
+  }
+
   isPearLink(word) {
     return word.toLowerCase().startsWith(`${this.protocol}://`)
   }
@@ -488,11 +611,28 @@ function isDefaultEmoji(word) {
   return /\p{Extended_Pictographic}/u.test(word)
 }
 
+function isUnorderedList(mark) {
+  return mark === `${UnorderedListInputMark}${BlankSpace}`
+}
+
 function noop() {}
 
 function isEndWord(c) {
   return c === BlankSpace || c === NewLine || c === '\t'
 }
 
+function getLineStart(text, position) {
+  while (position > 0 && text[position - 1] !== NewLine) position--
+  return position
+}
+
+function getLineEnd(text, start) {
+  const index = text.indexOf(NewLine, start)
+  if (index === -1) return text.length
+  return index
+}
+
 const BlankSpace = ' '
 const NewLine = '\n'
+const UnorderedListInputMark = '-'
+const UnorderedListOutMark = '●'
