@@ -1,6 +1,6 @@
 const test = require('brittle')
-const { DISPLAY_TYPES } = require('@holepunchto/keet-core-api')
 const Parser = require('..')
+const { DISPLAY_TYPES } = require('../utils')
 
 const { HTTP_LINK, PEAR_LINK, MENTION, EMOJI } = DISPLAY_TYPES
 

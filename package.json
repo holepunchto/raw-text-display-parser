@@ -4,15 +4,13 @@
   "description": "Small state machine to parse chat input state when using raw text",
   "main": "index.js",
   "files": [
-    "index.js"
+    "index.js",
+    "utils.js"
   ],
   "scripts": {
     "format": "prettier --write .",
     "test": "prettier --check . && brittle test/*.test.js",
     "test:single": "npm run format && brittle $1"
-  },
-  "dependencies": {
-    "@holepunchto/keet-core-api": "^2.11.0"
   },
   "devDependencies": {
     "brittle": "^3.19.0",
