@@ -37,7 +37,7 @@ const makeParser = ({ text = '', display = [] }) => {
   return p
 }
 
-test('list general case', (t) => {
+test('ordered-list general case', (t) => {
   const p = makeParser({})
 
   p.resync('1. ')
@@ -69,4 +69,28 @@ test('list general case', (t) => {
     orderedListDisplay(15, 2),
     orderedListDisplay(20, 3)
   ])
+})
+
+test('remove space inside mark remove the display', (t) => {
+  const p = makeParser({})
+
+  p.resync('1. ')
+  t.is(p.text, '1. ')
+  t.is(p.position, 3)
+  t.alike(p.display, [orderedListDisplay(0, 1)])
+
+  p.resync('1.')
+  t.is(p.text, '1.')
+  t.is(p.position, 2)
+  t.alike(p.display, [])
+
+  p.resync('1. ')
+  t.is(p.text, '1. ')
+  t.is(p.position, 3)
+  t.alike(p.display, [orderedListDisplay(0, 1)])
+
+  p.resync('1. \n')
+  t.is(p.text, '')
+  t.is(p.position, 0)
+  t.alike(p.display, [])
 })
