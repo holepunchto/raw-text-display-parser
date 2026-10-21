@@ -9,7 +9,8 @@ const unorderedListDisplay = (start) => ({
   end: start + 2,
   content: '● ',
   length: 2,
-  type: UNORDERED_LIST_ITEM
+  type: UNORDERED_LIST_ITEM,
+  index: undefined
 })
 
 const makeParser = ({ text = '', display = [] }) => {
@@ -41,6 +42,32 @@ test('list general case', (t) => {
   ])
 
   p.resync('● http://a.io\n- ')
+  t.is(p.text, '● http://a.io\n● ')
+  t.is(p.position, 16)
+  t.alike(p.display, [
+    unorderedListDisplay(0),
+    { start: 2, end: 13, content: 'http://a.io', length: 11, type: HTTP_LINK },
+    unorderedListDisplay(14)
+  ])
+})
+
+test('list general case newline at the end', (t) => {
+  const p = makeParser({})
+
+  p.resync('- ')
+  t.is(p.text, '● ')
+  t.is(p.position, 2)
+  t.alike(p.display, [unorderedListDisplay(0)])
+
+  p.resync('● http://a.io')
+  t.is(p.text, '● http://a.io')
+  t.is(p.position, 13)
+  t.alike(p.display, [
+    unorderedListDisplay(0),
+    { start: 2, end: 13, content: 'http://a.io', length: 11, type: HTTP_LINK }
+  ])
+
+  p.resync('● http://a.io\n')
   t.is(p.text, '● http://a.io\n● ')
   t.is(p.position, 16)
   t.alike(p.display, [

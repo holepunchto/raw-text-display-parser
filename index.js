@@ -15,11 +15,18 @@ const {
   noop,
   isEndWord,
   getLineStart,
-  getLineEnd
+  getLineEnd,
+  isOrderedList
 } = require('./utils')
 
-const { EMOJI, MENTION, HTTP_LINK, PEAR_LINK, UNORDERED_LIST_ITEM } =
-  DISPLAY_TYPES
+const {
+  EMOJI,
+  MENTION,
+  HTTP_LINK,
+  PEAR_LINK,
+  UNORDERED_LIST_ITEM,
+  ORDERED_LIST_ITEM
+} = DISPLAY_TYPES
 
 module.exports = class RawTextDisplayParser {
   constructor(options = {}) {
@@ -358,12 +365,18 @@ module.exports = class RawTextDisplayParser {
       return this.onlist(lineStart, this.position, UNORDERED_LIST_ITEM)
     }
 
+    if (isOrderedList(line)) {
+      return this.onlist(lineStart, this.position, ORDERED_LIST_ITEM, 1)
+    }
+
     if (inserted !== NewLine) return
 
     // enter on a list item continues the list on the new line
     const prevStart = getLineStart(this.text, lineStart - 1)
     const item = this.display.find(
-      (d) => d.start === prevStart && d.type === UNORDERED_LIST_ITEM
+      (d) =>
+        d.start === prevStart &&
+        [UNORDERED_LIST_ITEM, ORDERED_LIST_ITEM].includes(d.type)
     )
 
     if (!item) return
@@ -375,7 +388,12 @@ module.exports = class RawTextDisplayParser {
       return this._removeText(item.start, this.position)
     }
 
-    this.onlist(this.position, this.position, item.type)
+    this.onlist(
+      this.position,
+      this.position,
+      item.type,
+      item.type === ORDERED_LIST_ITEM ? item.index + 1 : undefined
+    )
   }
 
   resync(text) {
@@ -571,11 +589,13 @@ module.exports = class RawTextDisplayParser {
     return true
   }
 
-  setList(start, end, type) {
+  setList(start, end, type, index) {
     if (start < 0 || end < start || end > this.text.length) return false
 
     const content =
-      type === UNORDERED_LIST_ITEM ? `${UnorderedListOutMark}${BlankSpace}` : ''
+      type === UNORDERED_LIST_ITEM
+        ? `${UnorderedListOutMark}${BlankSpace}`
+        : `${index}.${BlankSpace}`
     this.selectRange(start, end)
     this.appendText(content)
 
@@ -584,7 +604,8 @@ module.exports = class RawTextDisplayParser {
       start,
       end: start + content.length,
       content,
-      length: content.length
+      length: content.length,
+      index
     }
 
     this._clearPrevious(upd.start, upd.end)
