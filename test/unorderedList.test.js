@@ -836,3 +836,11 @@ test('paste with a link right after a mark keeps converting the lines below', (t
     unorderedListDisplay(18)
   ])
 })
+
+test('paste an unordered list whose last item is empty', (t) => {
+  const p = makeParser({})
+
+  p.resync('- a\n- ')
+  t.is(p.text, '● a\n● ')
+  t.alike(p.display, [unorderedListDisplay(0), unorderedListDisplay(4)])
+})
