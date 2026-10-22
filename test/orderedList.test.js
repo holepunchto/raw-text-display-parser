@@ -44,7 +44,9 @@ const emojiDisplay = (start) => ({
 const makeParser = ({ text = '', display = [] }) => {
   const p = new Parser({
     text,
-    display: display.map((start, index) => orderedListDisplay(start, index)),
+    display: display.map((start, index) =>
+      orderedListDisplay(start, index + 1)
+    ),
     onlist: (start, end, type, index) => p.setList(start, end, type, index),
     onlink: (link) => p.setLink(link, link),
     onmention: (mention) => p.setMention(mention, '@bob', 'member-id'),
@@ -885,6 +887,7 @@ test('deleting the whole first list line keeps the next item intact', (t) => {
   p.selectRange(0, 5)
   p.resync('2. b')
   t.is(p.text, '1. b')
+  t.is(p.position, 0)
   t.alike(p.display, [orderedListDisplay(0, 1)])
 })
 

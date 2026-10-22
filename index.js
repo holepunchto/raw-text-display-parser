@@ -376,6 +376,14 @@ module.exports = class RawTextDisplayParser {
       ) {
         this._removeText(d.start, d.start + 1, UnorderedListInputMark)
       }
+      // else if (
+      //   d.type === ORDERED_LIST_ITEM &&
+      //   d.start > 0 &&
+      //   this.text[d.start - 1] !== NewLine
+      // ) {
+      //   // the typed mark is already the original text, only drop the display
+      //   this.display.splice(i, 1)
+      // }
     }
 
     const lineStart = getLineStart(this.text, this.position)
@@ -486,7 +494,52 @@ module.exports = class RawTextDisplayParser {
     this._fireList(_text.slice(end, startNew))
     startNew > end && this._fireAllLists(end, startNew)
     this._fireAllWords(from, to)
+    console.log('before', this)
+    this._renumberLists()
+    console.log('after', this)
   }
+
+  _renumberLists() {
+    let prev = null
+    for (const d of this.display) {
+      if (d.type !== ORDERED_LIST_ITEM) continue
+
+      // an item on the line right after the previous item continues its list
+      const continues =
+        prev !== null && getLineStart(this.text, d.start - 1) === prev.start
+      const index = continues ? prev.index + 1 : 1
+      if (d.index !== index) {
+        d.content = `${index}.${BlankSpace}`
+        d.index = index
+        this.text = `${this.text.slice(0, d.start)}${index}${this.text.slice(d.start + 1)}`
+      }
+      prev = d
+    }
+  }
+
+  // _setListIndex(item, index) {
+  //   const content = `${index}.${BlankSpace}`
+  //   const delta = content.length - item.length
+  //   const end = item.end
+
+  //   this.text = this.text.slice(0, item.start) + content + this.text.slice(end)
+
+  //   for (const d of this.display) {
+  //     if (d !== item && end <= d.start) {
+  //       d.start += delta
+  //       d.end += delta
+  //     }
+  //   }
+
+  //   if (this.position >= end) this.position += delta
+  //   else if (this.position > item.start)
+  //     this.position = item.start + content.length
+
+  //   item.end = item.start + content.length
+  //   item.content = content
+  //   item.length = content.length
+  //   item.index = index
+  // }
 
   setEmoji(input, code, emoji, isDefaultEmoji) {
     if (this.word !== input) return false
