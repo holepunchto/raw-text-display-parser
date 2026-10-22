@@ -375,15 +375,14 @@ module.exports = class RawTextDisplayParser {
         this.text[d.start - 1] !== NewLine
       ) {
         this._removeText(d.start, d.start + 1, UnorderedListInputMark)
+      } else if (
+        d.type === ORDERED_LIST_ITEM &&
+        d.start > 0 &&
+        this.text[d.start - 1] !== NewLine
+      ) {
+        // the typed mark is already the original text, only drop the display
+        this.display.splice(i, 1)
       }
-      // else if (
-      //   d.type === ORDERED_LIST_ITEM &&
-      //   d.start > 0 &&
-      //   this.text[d.start - 1] !== NewLine
-      // ) {
-      //   // the typed mark is already the original text, only drop the display
-      //   this.display.splice(i, 1)
-      // }
     }
 
     const lineStart = getLineStart(this.text, this.position)
@@ -494,12 +493,10 @@ module.exports = class RawTextDisplayParser {
     this._fireList(_text.slice(end, startNew))
     startNew > end && this._fireAllLists(end, startNew)
     this._fireAllWords(from, to)
-    console.log('before', this)
-    this._renumberLists()
-    console.log('after', this)
+    this._reindexUnorderedLists()
   }
 
-  _renumberLists() {
+  _reindexUnorderedLists() {
     let prev = null
     for (const d of this.display) {
       if (d.type !== ORDERED_LIST_ITEM) continue

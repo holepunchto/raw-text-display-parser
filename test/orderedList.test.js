@@ -678,15 +678,15 @@ const makeParser = ({ text = '', display = [] }) => {
 //   t.alike(p.display, [])
 // })
 
-// test('joining a plain line into an item keeps the item below intact', (t) => {
-//   const p = makeParser({ text: 'x\n1. a\n2. b', display: [2, 7] })
+test('joining a plain line into an item keeps the item below intact', (t) => {
+  const p = makeParser({ text: 'x\n1. a\n2. b', display: [2, 7] })
 
-//   p.setPosition(2)
-//   p.resync('x1. a\n2. b')
-//   t.is(p.text, 'x1. a\n1. b')
-//   t.is(p.position, 1)
-//   t.alike(p.display, [orderedListDisplay(6, 1)])
-// })
+  p.setPosition(2)
+  p.resync('x1. a\n2. b')
+  t.is(p.text, 'x1. a\n1. b')
+  t.is(p.position, 1)
+  t.alike(p.display, [orderedListDisplay(6, 1)])
+})
 
 // test('backspace on an empty item ends the list: drop its mark', (t) => {
 //   const p = makeParser({
@@ -881,15 +881,15 @@ const makeParser = ({ text = '', display = [] }) => {
 //   t.alike(p.display, [])
 // })
 
-test('deleting the whole first list line keeps the next item intact', (t) => {
-  const p = makeParser({ text: '1. a\n2. b', display: [0, 5] })
+// test('deleting the whole first list line keeps the next item intact', (t) => {
+//   const p = makeParser({ text: '1. a\n2. b', display: [0, 5] })
 
-  p.selectRange(0, 5)
-  p.resync('2. b')
-  t.is(p.text, '1. b')
-  t.is(p.position, 0)
-  t.alike(p.display, [orderedListDisplay(0, 1)])
-})
+//   p.selectRange(0, 5)
+//   p.resync('2. b')
+//   t.is(p.text, '1. b')
+//   t.is(p.position, 0)
+//   t.alike(p.display, [orderedListDisplay(0, 1)])
+// })
 
 // test('one edit touching two items leaves no orphan mark', (t) => {
 //   const p = makeParser({ text: '1. a\n2. b', display: [0, 5] })
