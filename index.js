@@ -178,7 +178,7 @@ module.exports = class RawTextDisplayParser {
       const start = getLineStart(this.text, index)
       if (
         start >= from &&
-        start + 2 < Math.min(to, this.text.length) &&
+        start + 2 <= Math.min(to, this.text.length) &&
         isUnorderedList(this.text.slice(start, start + 2))
       ) {
         const end = start + 2
@@ -199,7 +199,7 @@ module.exports = class RawTextDisplayParser {
 
       if (
         start >= from &&
-        start + 3 < Math.min(to, this.text.length) &&
+        start + 3 <= Math.min(to, this.text.length) &&
         isOrderedList(this.text.slice(start, start + 3))
       ) {
         const end = start + 3
