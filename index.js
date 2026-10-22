@@ -16,6 +16,7 @@ const {
   isEndWord,
   getLineStart,
   getLineEnd,
+  isOrderedListEntry,
   isOrderedList
 } = require('./utils')
 
@@ -175,12 +176,12 @@ module.exports = class RawTextDisplayParser {
     let position = this.position
     while (true) {
       const start = getLineStart(this.text, index)
-      const end = start + 2
       if (
         start >= from &&
-        end < Math.min(to, this.text.length) &&
-        isUnorderedList(this.text.slice(start, end))
+        start + 2 < Math.min(to, this.text.length) &&
+        isUnorderedList(this.text.slice(start, start + 2))
       ) {
+        const end = start + 2
         const alreadyCovered = this.display.some(
           (d) =>
             d.start <= start && d.end >= end && d.type === UNORDERED_LIST_ITEM
@@ -191,6 +192,25 @@ module.exports = class RawTextDisplayParser {
           if (end < position) position += this.text.length - length
 
           // the host may have grown or shrunk this.text, find the line's end again from its start
+          index = getLineEnd(this.text, start)
+        }
+      }
+
+      if (
+        start >= from &&
+        start + 3 < Math.min(to, this.text.length) &&
+        isOrderedList(this.text.slice(start, start + 3))
+      ) {
+        const end = start + 3
+        const alreadyCovered = this.display.some(
+          (d) =>
+            d.start <= start && d.end >= end && d.type === ORDERED_LIST_ITEM
+        )
+        if (!alreadyCovered) {
+          const length = this.text.length
+          this.onlist(start, end, ORDERED_LIST_ITEM, Number(this.text[start]))
+          if (end < position) position += this.text.length - length
+
           index = getLineEnd(this.text, start)
         }
       }
@@ -365,7 +385,7 @@ module.exports = class RawTextDisplayParser {
       return this.onlist(lineStart, this.position, UNORDERED_LIST_ITEM)
     }
 
-    if (isOrderedList(line)) {
+    if (isOrderedListEntry(line)) {
       return this.onlist(lineStart, this.position, ORDERED_LIST_ITEM, 1)
     }
 

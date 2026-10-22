@@ -94,3 +94,12 @@ test('remove space inside mark remove the display', (t) => {
   t.is(p.position, 0)
   t.alike(p.display, [])
 })
+
+test('paste the whole ordered-list', (t) => {
+  const p = makeParser({})
+
+  p.resync('1. first line\n2. second line')
+  t.is(p.text, '1. first line\n2. second line')
+  t.is(p.position, 28)
+  t.alike(p.display, [orderedListDisplay(0, 1), orderedListDisplay(14, 2)])
+})

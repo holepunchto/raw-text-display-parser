@@ -57,8 +57,13 @@ export function isUnorderedList(mark) {
   return mark === `${UnorderedListInputMark}${BlankSpace}`
 }
 
-export function isOrderedList(mark) {
+export function isOrderedListEntry(mark) {
   return mark === `${OrderedListInputMark}.${BlankSpace}`
+}
+
+export function isOrderedList(mark) {
+  const index = Number(mark[0])
+  return !isNaN(index) && mark === `${index}.${BlankSpace}`
 }
 
 export function noop() {}
