@@ -13,6 +13,14 @@ const unorderedListDisplay = (start) => ({
   index: undefined
 })
 
+const linkDisplay = (start, content) => ({
+  start,
+  end: start + content.length,
+  content,
+  length: content.length,
+  type: HTTP_LINK
+})
+
 const makeParser = ({ text = '', display = [] }) => {
   const p = new Parser({
     text,
@@ -814,4 +822,17 @@ test('one edit touching two items leaves no orphan bullet', (t) => {
   t.is(p.text, '- x\n●b')
   t.is(p.position, 5)
   t.alike(p.display, [])
+})
+
+test('paste with a link right after a mark keeps converting the lines below', (t) => {
+  const p = makeParser({})
+
+  p.resync('- https://keet.io\n- x')
+  t.is(p.text, '● https://keet.io\n● x')
+  t.is(p.position, 21)
+  t.alike(p.display, [
+    unorderedListDisplay(0),
+    linkDisplay(2, 'https://keet.io'),
+    unorderedListDisplay(18)
+  ])
 })

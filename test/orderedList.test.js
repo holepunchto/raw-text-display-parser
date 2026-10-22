@@ -919,3 +919,48 @@ test('one edit touching two items leaves no orphan mark', (t) => {
   t.is(p.position, 7)
   t.alike(p.display, [])
 })
+
+test('re-index when remove middle item', (t) => {
+  const p = makeParser({
+    text: '1. a\n2. b\n3. c\n4. d',
+    display: [0, 5, 10, 15]
+  })
+
+  p.selectRange(6, 8)
+  p.resync('1. a\n2b\n3. c\n4. d')
+  t.is(p.text, '1. a\n2b\n1. c\n2. d')
+  t.is(p.position, 6)
+  t.alike(p.display, [
+    orderedListDisplay(0, 1),
+    orderedListDisplay(8, 1),
+    orderedListDisplay(13, 2)
+  ])
+
+  p.selectRange(4, 7)
+  p.resync('1. a\n1. c\n2. d')
+  t.is(p.text, '1. a\n2. c\n3. d')
+  t.is(p.position, 4)
+  t.alike(p.display, [
+    orderedListDisplay(0, 1),
+    orderedListDisplay(5, 2),
+    orderedListDisplay(10, 3)
+  ])
+})
+
+test('re-index when adding middle item', (t) => {
+  const p = makeParser({
+    text: '1. a\n2. b\n3. c',
+    display: [0, 5, 10]
+  })
+
+  p.setPosition(4)
+  p.resync('1. a\n\n2. b\n3. c')
+  t.is(p.text, '1. a\n2. \n3. b\n4. c')
+  t.is(p.position, 8)
+  t.alike(p.display, [
+    orderedListDisplay(0, 1),
+    orderedListDisplay(5, 2),
+    orderedListDisplay(9, 3),
+    orderedListDisplay(14, 4)
+  ])
+})
