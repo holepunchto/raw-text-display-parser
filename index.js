@@ -190,6 +190,7 @@ module.exports = class RawTextDisplayParser {
           const length = this.text.length
           this.onlist(start, end, UNORDERED_LIST_ITEM)
           if (end < position) position += this.text.length - length
+          to += this.text.length - length
 
           // the host may have grown or shrunk this.text, find the line's end again from its start
           index = getLineEnd(this.text, start)
@@ -210,6 +211,7 @@ module.exports = class RawTextDisplayParser {
           const length = this.text.length
           this.onlist(start, end, ORDERED_LIST_ITEM, Number(this.text[start]))
           if (end < position) position += this.text.length - length
+          to += this.text.length - length
 
           index = getLineEnd(this.text, start)
         }

@@ -964,3 +964,11 @@ test('re-index when adding middle item', (t) => {
     orderedListDisplay(14, 4)
   ])
 })
+
+test('paste an ordered list whose last item is empty', (t) => {
+  const p = makeParser({})
+
+  p.resync('1. a\n2. ')
+  t.is(p.text, '1. a\n2. ')
+  t.alike(p.display, [orderedListDisplay(0, 1), orderedListDisplay(5, 2)])
+})
