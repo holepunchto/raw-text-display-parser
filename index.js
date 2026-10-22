@@ -514,30 +514,6 @@ module.exports = class RawTextDisplayParser {
     }
   }
 
-  // _setListIndex(item, index) {
-  //   const content = `${index}.${BlankSpace}`
-  //   const delta = content.length - item.length
-  //   const end = item.end
-
-  //   this.text = this.text.slice(0, item.start) + content + this.text.slice(end)
-
-  //   for (const d of this.display) {
-  //     if (d !== item && end <= d.start) {
-  //       d.start += delta
-  //       d.end += delta
-  //     }
-  //   }
-
-  //   if (this.position >= end) this.position += delta
-  //   else if (this.position > item.start)
-  //     this.position = item.start + content.length
-
-  //   item.end = item.start + content.length
-  //   item.content = content
-  //   item.length = content.length
-  //   item.index = index
-  // }
-
   setEmoji(input, code, emoji, isDefaultEmoji) {
     if (this.word !== input) return false
 
