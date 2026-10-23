@@ -9,8 +9,7 @@ const unorderedListDisplay = (start) => ({
   end: start + 2,
   content: '● ',
   length: 2,
-  type: UNORDERED_LIST_ITEM,
-  index: undefined
+  type: UNORDERED_LIST_ITEM
 })
 
 const linkDisplay = (start, content) => ({

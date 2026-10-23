@@ -652,9 +652,10 @@ module.exports = class RawTextDisplayParser {
       start,
       end: start + content.length,
       content,
-      length: content.length,
-      index
+      length: content.length
     }
+
+    if (type === ORDERED_LIST_ITEM) upd.index = index
 
     this._clearPrevious(upd.start, upd.end)
     this._insertDisplay(upd)
