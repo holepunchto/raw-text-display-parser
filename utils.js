@@ -2,6 +2,7 @@ export const BlankSpace = ' '
 export const NewLine = '\n'
 export const UnorderedListInputMark = '-'
 export const UnorderedListOutMark = '●'
+export const OrderedListInputMark = '1'
 
 export const DISPLAY_TYPES = {
   MENTION: 1,
@@ -54,6 +55,15 @@ export function isDefaultEmoji(word) {
 
 export function isUnorderedList(mark) {
   return mark === `${UnorderedListInputMark}${BlankSpace}`
+}
+
+export function isOrderedListEntry(mark) {
+  return mark === `${OrderedListInputMark}.${BlankSpace}`
+}
+
+export function isOrderedList(mark) {
+  const index = Number(mark[0])
+  return !isNaN(index) && mark === `${index}.${BlankSpace}`
 }
 
 export function noop() {}

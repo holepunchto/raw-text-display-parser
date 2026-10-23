@@ -12,6 +12,14 @@ const unorderedListDisplay = (start) => ({
   type: UNORDERED_LIST_ITEM
 })
 
+const linkDisplay = (start, content) => ({
+  start,
+  end: start + content.length,
+  content,
+  length: content.length,
+  type: HTTP_LINK
+})
+
 const makeParser = ({ text = '', display = [] }) => {
   const p = new Parser({
     text,
@@ -41,6 +49,32 @@ test('list general case', (t) => {
   ])
 
   p.resync('● http://a.io\n- ')
+  t.is(p.text, '● http://a.io\n● ')
+  t.is(p.position, 16)
+  t.alike(p.display, [
+    unorderedListDisplay(0),
+    { start: 2, end: 13, content: 'http://a.io', length: 11, type: HTTP_LINK },
+    unorderedListDisplay(14)
+  ])
+})
+
+test('list general case newline at the end', (t) => {
+  const p = makeParser({})
+
+  p.resync('- ')
+  t.is(p.text, '● ')
+  t.is(p.position, 2)
+  t.alike(p.display, [unorderedListDisplay(0)])
+
+  p.resync('● http://a.io')
+  t.is(p.text, '● http://a.io')
+  t.is(p.position, 13)
+  t.alike(p.display, [
+    unorderedListDisplay(0),
+    { start: 2, end: 13, content: 'http://a.io', length: 11, type: HTTP_LINK }
+  ])
+
+  p.resync('● http://a.io\n')
   t.is(p.text, '● http://a.io\n● ')
   t.is(p.position, 16)
   t.alike(p.display, [
@@ -787,4 +821,25 @@ test('one edit touching two items leaves no orphan bullet', (t) => {
   t.is(p.text, '- x\n●b')
   t.is(p.position, 5)
   t.alike(p.display, [])
+})
+
+test('paste with a link right after a mark keeps converting the lines below', (t) => {
+  const p = makeParser({})
+
+  p.resync('- https://keet.io\n- x')
+  t.is(p.text, '● https://keet.io\n● x')
+  t.is(p.position, 21)
+  t.alike(p.display, [
+    unorderedListDisplay(0),
+    linkDisplay(2, 'https://keet.io'),
+    unorderedListDisplay(18)
+  ])
+})
+
+test('paste an unordered list whose last item is empty', (t) => {
+  const p = makeParser({})
+
+  p.resync('- a\n- ')
+  t.is(p.text, '● a\n● ')
+  t.alike(p.display, [unorderedListDisplay(0), unorderedListDisplay(4)])
 })
