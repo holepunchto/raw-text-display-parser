@@ -495,10 +495,10 @@ module.exports = class RawTextDisplayParser {
     this._fireList(_text.slice(end, startNew))
     startNew > end && this._fireAllLists(end, startNew)
     this._fireAllWords(from, to)
-    this._reindexUnorderedLists()
+    this._reindexOrderedLists()
   }
 
-  _reindexUnorderedLists() {
+  _reindexOrderedLists() {
     let prev = null
     for (const d of this.display) {
       if (d.type !== ORDERED_LIST_ITEM) continue
