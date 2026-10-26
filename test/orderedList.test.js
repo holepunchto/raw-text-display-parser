@@ -998,3 +998,81 @@ test('paste a long ordered list with 12 items', (t) => {
     orderedListDisplay(57, 12)
   ])
 })
+
+test('add new item and delete after that in the middle of long ordered list', (t) => {
+  const p = makeParser({
+    text: '1. a\n2. b\n3. c\n4. d\n5. e\n6. f\n7. g\n8. h\n9. i\n10. j\n11. k\n12. ',
+    display: [0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 51, 57]
+  })
+
+  p.setPosition(9)
+  p.resync(
+    '1. a\n2. b\n\n3. c\n4. d\n5. e\n6. f\n7. g\n8. h\n9. i\n10. j\n11. k\n12. '
+  )
+  t.is(
+    p.text,
+    '1. a\n2. b\n3. \n4. c\n5. d\n6. e\n7. f\n8. g\n9. h\n10. i\n11. j\n12. k\n13. '
+  )
+  t.is(p.position, 13)
+  t.alike(p.display, [
+    orderedListDisplay(0, 1),
+    orderedListDisplay(5, 2),
+    orderedListDisplay(10, 3),
+    orderedListDisplay(14, 4),
+    orderedListDisplay(19, 5),
+    orderedListDisplay(24, 6),
+    orderedListDisplay(29, 7),
+    orderedListDisplay(34, 8),
+    orderedListDisplay(39, 9),
+    orderedListDisplay(44, 10),
+    orderedListDisplay(50, 11),
+    orderedListDisplay(56, 12),
+    orderedListDisplay(62, 13)
+  ])
+
+  p.resync(
+    '1. a\n2. b\n3. \n\n4. c\n5. d\n6. e\n7. f\n8. g\n9. h\n10. i\n11. j\n12. k\n13. '
+  )
+  t.is(
+    p.text,
+    '1. a\n2. b\n\n1. c\n2. d\n3. e\n4. f\n5. g\n6. h\n7. i\n8. j\n9. k\n10. '
+  )
+  t.is(p.position, 10)
+  t.alike(p.display, [
+    orderedListDisplay(0, 1),
+    orderedListDisplay(5, 2),
+    orderedListDisplay(11, 1),
+    orderedListDisplay(16, 2),
+    orderedListDisplay(21, 3),
+    orderedListDisplay(26, 4),
+    orderedListDisplay(31, 5),
+    orderedListDisplay(36, 6),
+    orderedListDisplay(41, 7),
+    orderedListDisplay(46, 8),
+    orderedListDisplay(51, 9),
+    orderedListDisplay(56, 10)
+  ])
+
+  p.resync(
+    '1. a\n2. b\n1. c\n2. d\n3. e\n4. f\n5. g\n6. h\n7. i\n8. j\n9. k\n10. '
+  )
+  t.is(
+    p.text,
+    '1. a\n2. b\n3. c\n4. d\n5. e\n6. f\n7. g\n8. h\n9. i\n10. j\n11. k\n12. '
+  )
+  t.is(p.position, 9)
+  t.alike(p.display, [
+    orderedListDisplay(0, 1),
+    orderedListDisplay(5, 2),
+    orderedListDisplay(10, 3),
+    orderedListDisplay(15, 4),
+    orderedListDisplay(20, 5),
+    orderedListDisplay(25, 6),
+    orderedListDisplay(30, 7),
+    orderedListDisplay(35, 8),
+    orderedListDisplay(40, 9),
+    orderedListDisplay(45, 10),
+    orderedListDisplay(51, 11),
+    orderedListDisplay(57, 12)
+  ])
+})

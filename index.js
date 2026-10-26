@@ -507,7 +507,11 @@ module.exports = class RawTextDisplayParser {
 
   _reindexOrderedLists() {
     let prev = null
+    let delta = 0
     for (const d of this.display) {
+      d.start += delta
+      d.end += delta
+      
       if (d.type !== ORDERED_LIST_ITEM) continue
 
       // an item on the line right after the previous item continues its list
@@ -515,9 +519,17 @@ module.exports = class RawTextDisplayParser {
         prev !== null && getLineStart(this.text, d.start - 1) === prev.start
       const index = continues ? prev.index + 1 : 1
       if (d.index !== index) {
-        d.content = `${index}${OrderedListInputDotMark}${BlankSpace}`
+        const newContent = `${index}${OrderedListInputDotMark}${BlankSpace}`
+        const contentDelta = newContent.length - d.content.length
+
+        this.text = `${this.text.slice(0, d.start)}${newContent}${this.text.slice(d.end)}`
+
+        d.content = newContent
         d.index = index
-        this.text = `${this.text.slice(0, d.start)}${index}${this.text.slice(d.start + 1)}`
+        d.length = newContent.length
+        d.end += contentDelta
+
+        delta += contentDelta
       }
       prev = d
     }
