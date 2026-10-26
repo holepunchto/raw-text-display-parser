@@ -1076,3 +1076,11 @@ test('add new item and delete after that in the middle of long ordered list', (t
     orderedListDisplay(57, 12)
   ])
 })
+
+test('"Infinity. " is not an ordered-list mark', (t) => {
+  const p = makeParser({})
+
+  p.resync('Infinity. hello')
+  t.is(p.text, 'Infinity. hello')
+  t.alike(p.display, [])
+})

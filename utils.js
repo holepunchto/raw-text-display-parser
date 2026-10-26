@@ -70,6 +70,7 @@ export function isOrderedList(mark) {
   return (
     !isNaN(index) &&
     index > 0 &&
+    index < 1000 &&
     mark === `${index}${OrderedListInputDotMark}${BlankSpace}`
   )
 }

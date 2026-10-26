@@ -511,7 +511,7 @@ module.exports = class RawTextDisplayParser {
     for (const d of this.display) {
       d.start += delta
       d.end += delta
-      
+
       if (d.type !== ORDERED_LIST_ITEM) continue
 
       // an item on the line right after the previous item continues its list
