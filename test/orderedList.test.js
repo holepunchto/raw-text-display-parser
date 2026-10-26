@@ -41,6 +41,17 @@ const emojiDisplay = (start) => ({
   type: EMOJI
 })
 
+const getList = (length) => {
+  let _text = ''
+  const _display = []
+  for (let _index = 1; _index <= length; _index++) {
+    _display.push(_text.length)
+    _text += `${_index}. ${String.fromCharCode(96 + _index)}${_index < length ? '\n' : ''}`
+  }
+
+  return { text: _text, display: _display }
+}
+
 const makeParser = ({ text = '', display = [] }) => {
   const p = new Parser({
     text,
@@ -976,42 +987,24 @@ test('paste an ordered list whose last item is empty', (t) => {
 test('paste a long ordered list with 12 items', (t) => {
   const p = makeParser({})
 
-  p.resync(
-    '1. a\n2. b\n3. c\n4. d\n5. e\n6. f\n7. g\n8. h\n9. i\n10. j\n11. k\n12. '
+  p.resync(getList(12).text)
+  t.is(p.text, getList(12).text)
+  t.alike(
+    p.display,
+    getList(12).display.map((e, i) => orderedListDisplay(e, i + 1))
   )
-  t.is(
-    p.text,
-    '1. a\n2. b\n3. c\n4. d\n5. e\n6. f\n7. g\n8. h\n9. i\n10. j\n11. k\n12. '
-  )
-  t.alike(p.display, [
-    orderedListDisplay(0, 1),
-    orderedListDisplay(5, 2),
-    orderedListDisplay(10, 3),
-    orderedListDisplay(15, 4),
-    orderedListDisplay(20, 5),
-    orderedListDisplay(25, 6),
-    orderedListDisplay(30, 7),
-    orderedListDisplay(35, 8),
-    orderedListDisplay(40, 9),
-    orderedListDisplay(45, 10),
-    orderedListDisplay(51, 11),
-    orderedListDisplay(57, 12)
-  ])
 })
 
 test('add new item and delete after that in the middle of long ordered list', (t) => {
-  const p = makeParser({
-    text: '1. a\n2. b\n3. c\n4. d\n5. e\n6. f\n7. g\n8. h\n9. i\n10. j\n11. k\n12. ',
-    display: [0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 51, 57]
-  })
+  const p = makeParser(getList(12))
 
   p.setPosition(9)
   p.resync(
-    '1. a\n2. b\n\n3. c\n4. d\n5. e\n6. f\n7. g\n8. h\n9. i\n10. j\n11. k\n12. '
+    '1. a\n2. b\n\n3. c\n4. d\n5. e\n6. f\n7. g\n8. h\n9. i\n10. j\n11. k\n12. l'
   )
   t.is(
     p.text,
-    '1. a\n2. b\n3. \n4. c\n5. d\n6. e\n7. f\n8. g\n9. h\n10. i\n11. j\n12. k\n13. '
+    '1. a\n2. b\n3. \n4. c\n5. d\n6. e\n7. f\n8. g\n9. h\n10. i\n11. j\n12. k\n13. l'
   )
   t.is(p.position, 13)
   t.alike(p.display, [
@@ -1031,11 +1024,11 @@ test('add new item and delete after that in the middle of long ordered list', (t
   ])
 
   p.resync(
-    '1. a\n2. b\n3. \n\n4. c\n5. d\n6. e\n7. f\n8. g\n9. h\n10. i\n11. j\n12. k\n13. '
+    '1. a\n2. b\n3. \n\n4. c\n5. d\n6. e\n7. f\n8. g\n9. h\n10. i\n11. j\n12. k\n13. l'
   )
   t.is(
     p.text,
-    '1. a\n2. b\n\n1. c\n2. d\n3. e\n4. f\n5. g\n6. h\n7. i\n8. j\n9. k\n10. '
+    '1. a\n2. b\n\n1. c\n2. d\n3. e\n4. f\n5. g\n6. h\n7. i\n8. j\n9. k\n10. l'
   )
   t.is(p.position, 10)
   t.alike(p.display, [
@@ -1054,27 +1047,14 @@ test('add new item and delete after that in the middle of long ordered list', (t
   ])
 
   p.resync(
-    '1. a\n2. b\n1. c\n2. d\n3. e\n4. f\n5. g\n6. h\n7. i\n8. j\n9. k\n10. '
+    '1. a\n2. b\n1. c\n2. d\n3. e\n4. f\n5. g\n6. h\n7. i\n8. j\n9. k\n10. l'
   )
-  t.is(
-    p.text,
-    '1. a\n2. b\n3. c\n4. d\n5. e\n6. f\n7. g\n8. h\n9. i\n10. j\n11. k\n12. '
-  )
+  t.is(p.text, getList(12).text)
   t.is(p.position, 9)
-  t.alike(p.display, [
-    orderedListDisplay(0, 1),
-    orderedListDisplay(5, 2),
-    orderedListDisplay(10, 3),
-    orderedListDisplay(15, 4),
-    orderedListDisplay(20, 5),
-    orderedListDisplay(25, 6),
-    orderedListDisplay(30, 7),
-    orderedListDisplay(35, 8),
-    orderedListDisplay(40, 9),
-    orderedListDisplay(45, 10),
-    orderedListDisplay(51, 11),
-    orderedListDisplay(57, 12)
-  ])
+  t.alike(
+    p.display,
+    getList(12).display.map((e, i) => orderedListDisplay(e, i + 1))
+  )
 })
 
 test('"Infinity. " is not an ordered-list mark', (t) => {
@@ -1087,26 +1067,62 @@ test('"Infinity. " is not an ordered-list mark', (t) => {
 
 test('paste 2 items after an 8-item list: re-index to 9, 10 keeps the cursor at the end', (t) => {
   const p = makeParser({
-    text: '1. a\n2. b\n3. c\n4. d\n5. e\n6. f\n7. g\n8. h\n',
-    display: [0, 5, 10, 15, 20, 25, 30, 35]
+    text: getList(8).text + '\n',
+    display: getList(8).display
   })
 
-  p.resync('1. a\n2. b\n3. c\n4. d\n5. e\n6. f\n7. g\n8. h\n1. i\n2. j')
-  t.is(p.text, '1. a\n2. b\n3. c\n4. d\n5. e\n6. f\n7. g\n8. h\n9. i\n10. j')
+  p.resync(getList(8).text + '\n1. i\n2. j')
+  t.is(p.text, getList(10).text)
   t.is(p.position, p.text.length)
   t.is(p.word, 'j')
   t.is(p.start, p.text.length - 1)
   t.is(p.end, p.text.length)
-  t.alike(p.display, [
-    orderedListDisplay(0, 1),
-    orderedListDisplay(5, 2),
-    orderedListDisplay(10, 3),
-    orderedListDisplay(15, 4),
-    orderedListDisplay(20, 5),
-    orderedListDisplay(25, 6),
-    orderedListDisplay(30, 7),
-    orderedListDisplay(35, 8),
-    orderedListDisplay(40, 9),
-    orderedListDisplay(45, 10)
-  ])
+  t.alike(
+    p.display,
+    getList(10).display.map((e, i) => orderedListDisplay(e, i + 1))
+  )
+})
+
+test('paste a 9-item list after an existing item: cursor after re-index', (t) => {
+  const p = makeParser({ text: '1. x\n', display: [0] })
+
+  p.resync('1. x\n' + getList(9).text)
+  t.is(p.text, '1. x\n2. a\n3. b\n4. c\n5. d\n6. e\n7. f\n8. g\n9. h\n10. i')
+  t.is(p.position, 50)
+})
+
+test('paste 12 items into the middle of a list: cursor ends after the pasted block', (t) => {
+  const p = makeParser({ text: '1. a\n2. y\n3. z', display: [0, 5, 10] })
+
+  p.setPosition(4)
+  p.resync('1. a\n' + getList(12).text + '\n2. y\n3. z')
+  t.is(
+    p.text,
+    '1. a\n2. a\n3. b\n4. c\n5. d\n6. e\n7. f\n8. g\n9. h\n10. i\n11. j\n12. k\n13. l\n14. y\n15. z'
+  )
+  t.is(p.position, 68)
+})
+
+test('an emoji at the end of the pasted 10th item keeps the cursor after it', (t) => {
+  const p = makeParser({
+    text: getList(8).text + '\n',
+    display: getList(8).display
+  })
+
+  p.resync(getList(8).text + '\n1. i\n2. :smile:')
+  t.is(p.text, getList(8).text + '\n9. i\n10. 😄')
+  t.is(p.position, p.text.length)
+  t.alike(p.display.at(-1), emojiDisplay(49))
+})
+
+test('deleting the first item of a 12-item list refreshes the current word', (t) => {
+  const p = makeParser(getList(12))
+
+  p.selectRange(0, 5)
+  p.resync(getList(12).text.slice(5))
+  t.is(
+    p.text,
+    '1. b\n2. c\n3. d\n4. e\n5. f\n6. g\n7. h\n8. i\n9. j\n10. k\n11. l'
+  )
+  t.is(p.position, 0)
 })
