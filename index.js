@@ -523,6 +523,7 @@ module.exports = class RawTextDisplayParser {
         const contentDelta = newContent.length - d.content.length
 
         this.text = `${this.text.slice(0, d.start)}${newContent}${this.text.slice(d.end)}`
+        d.start < this.position && (this.position += contentDelta)
 
         d.content = newContent
         d.index = index

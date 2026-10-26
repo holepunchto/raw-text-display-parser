@@ -1084,3 +1084,30 @@ test('"Infinity. " is not an ordered-list mark', (t) => {
   t.is(p.text, 'Infinity. hello')
   t.alike(p.display, [])
 })
+
+test('paste 2 items after an 8-item list: re-index to 9, 10 keeps the cursor at the end', (t) => {
+  const p = makeParser({
+    text: '1. a\n2. b\n3. c\n4. d\n5. e\n6. f\n7. g\n8. h\n',
+    display: [0, 5, 10, 15, 20, 25, 30, 35]
+  })
+
+  p.resync('1. a\n2. b\n3. c\n4. d\n5. e\n6. f\n7. g\n8. h\n1. i\n2. j')
+  t.is(p.text, '1. a\n2. b\n3. c\n4. d\n5. e\n6. f\n7. g\n8. h\n9. i\n10. j')
+
+  t.is(p.position, p.text.length)
+  t.is(p.word, 'j')
+  t.is(p.start, p.text.length - 1)
+  t.is(p.end, p.text.length)
+  t.alike(p.display, [
+    orderedListDisplay(0, 1),
+    orderedListDisplay(5, 2),
+    orderedListDisplay(10, 3),
+    orderedListDisplay(15, 4),
+    orderedListDisplay(20, 5),
+    orderedListDisplay(25, 6),
+    orderedListDisplay(30, 7),
+    orderedListDisplay(35, 8),
+    orderedListDisplay(40, 9),
+    orderedListDisplay(45, 10)
+  ])
+})
