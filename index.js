@@ -534,6 +534,7 @@ module.exports = class RawTextDisplayParser {
       }
       prev = d
     }
+    this._updateWord()
   }
 
   setEmoji(input, code, emoji, isDefaultEmoji) {
