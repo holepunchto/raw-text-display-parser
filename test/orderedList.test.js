@@ -1126,3 +1126,19 @@ test('deleting the first item of a 12-item list refreshes the current word', (t)
   )
   t.is(p.position, 0)
 })
+
+test('deleting one digit of a two-digit marker drops that item out of the list.', (t) => {
+  const p = makeParser(getList(11))
+
+  p.setPosition(47)
+  p.resync('1. a\n2. b\n3. c\n4. d\n5. e\n6. f\n7. g\n8. h\n9. i\n1. j\n11. k')
+  t.is(
+    p.text,
+    '1. a\n2. b\n3. c\n4. d\n5. e\n6. f\n7. g\n8. h\n9. i\n1. j\n1. k'
+  )
+  p.setPosition(46)
+  t.alike(p.display, [
+    ...getList(9).display.map((e, i) => orderedListDisplay(e, i + 1)),
+    orderedListDisplay(50, 1)
+  ])
+})
