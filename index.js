@@ -17,7 +17,8 @@ const {
   getLineStart,
   getLineEnd,
   isOrderedListEntry,
-  isOrderedList
+  isOrderedList,
+  OrderedListInputDotMark
 } = require('./utils')
 
 const {
@@ -197,19 +198,25 @@ module.exports = class RawTextDisplayParser {
         }
       }
 
+      const nextDot = this.text.indexOf(OrderedListInputDotMark, start)
       if (
         start >= from &&
-        start + 3 <= Math.min(to, this.text.length) &&
-        isOrderedList(this.text.slice(start, start + 3))
+        nextDot + 2 <= Math.min(to, this.text.length) &&
+        isOrderedList(this.text.slice(start, nextDot + 2))
       ) {
-        const end = start + 3
+        const end = nextDot + 2
         const alreadyCovered = this.display.some(
           (d) =>
             d.start <= start && d.end >= end && d.type === ORDERED_LIST_ITEM
         )
         if (!alreadyCovered) {
           const length = this.text.length
-          this.onlist(start, end, ORDERED_LIST_ITEM, Number(this.text[start]))
+          this.onlist(
+            start,
+            end,
+            ORDERED_LIST_ITEM,
+            Number(this.text.slice(start, nextDot))
+          )
           if (end < position) position += this.text.length - length
           to += this.text.length - length
 
@@ -508,7 +515,7 @@ module.exports = class RawTextDisplayParser {
         prev !== null && getLineStart(this.text, d.start - 1) === prev.start
       const index = continues ? prev.index + 1 : 1
       if (d.index !== index) {
-        d.content = `${index}.${BlankSpace}`
+        d.content = `${index}${OrderedListInputDotMark}${BlankSpace}`
         d.index = index
         this.text = `${this.text.slice(0, d.start)}${index}${this.text.slice(d.start + 1)}`
       }
@@ -643,7 +650,7 @@ module.exports = class RawTextDisplayParser {
     const content =
       type === UNORDERED_LIST_ITEM
         ? `${UnorderedListOutMark}${BlankSpace}`
-        : `${index}.${BlankSpace}`
+        : `${index}${OrderedListInputDotMark}${BlankSpace}`
     this.selectRange(start, end)
     this.appendText(content)
 

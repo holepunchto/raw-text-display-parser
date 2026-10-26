@@ -972,3 +972,29 @@ test('paste an ordered list whose last item is empty', (t) => {
   t.is(p.text, '1. a\n2. ')
   t.alike(p.display, [orderedListDisplay(0, 1), orderedListDisplay(5, 2)])
 })
+
+test('paste a long ordered list with 12 items', (t) => {
+  const p = makeParser({})
+
+  p.resync(
+    '1. a\n2. b\n3. c\n4. d\n5. e\n6. f\n7. g\n8. h\n9. i\n10. j\n11. k\n12. '
+  )
+  t.is(
+    p.text,
+    '1. a\n2. b\n3. c\n4. d\n5. e\n6. f\n7. g\n8. h\n9. i\n10. j\n11. k\n12. '
+  )
+  t.alike(p.display, [
+    orderedListDisplay(0, 1),
+    orderedListDisplay(5, 2),
+    orderedListDisplay(10, 3),
+    orderedListDisplay(15, 4),
+    orderedListDisplay(20, 5),
+    orderedListDisplay(25, 6),
+    orderedListDisplay(30, 7),
+    orderedListDisplay(35, 8),
+    orderedListDisplay(40, 9),
+    orderedListDisplay(45, 10),
+    orderedListDisplay(51, 11),
+    orderedListDisplay(57, 12)
+  ])
+})

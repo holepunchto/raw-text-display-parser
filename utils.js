@@ -3,6 +3,7 @@ export const NewLine = '\n'
 export const UnorderedListInputMark = '-'
 export const UnorderedListOutMark = '●'
 export const OrderedListInputMark = '1'
+export const OrderedListInputDotMark = '.'
 
 export const DISPLAY_TYPES = {
   MENTION: 1,
@@ -58,12 +59,19 @@ export function isUnorderedList(mark) {
 }
 
 export function isOrderedListEntry(mark) {
-  return mark === `${OrderedListInputMark}.${BlankSpace}`
+  return (
+    mark === `${OrderedListInputMark}${OrderedListInputDotMark}${BlankSpace}`
+  )
 }
 
 export function isOrderedList(mark) {
-  const index = Number(mark[0])
-  return !isNaN(index) && mark === `${index}.${BlankSpace}`
+  const dot = mark.indexOf(OrderedListInputDotMark)
+  const index = Number(mark.slice(0, dot))
+  return (
+    !isNaN(index) &&
+    index > 0 &&
+    mark === `${index}${OrderedListInputDotMark}${BlankSpace}`
+  )
 }
 
 export function noop() {}
