@@ -15,11 +15,20 @@ const {
   noop,
   isEndWord,
   getLineStart,
-  getLineEnd
+  getLineEnd,
+  isOrderedListEntry,
+  isOrderedList,
+  OrderedListInputDotMark
 } = require('./utils')
 
-const { EMOJI, MENTION, HTTP_LINK, PEAR_LINK, UNORDERED_LIST_ITEM } =
-  DISPLAY_TYPES
+const {
+  EMOJI,
+  MENTION,
+  HTTP_LINK,
+  PEAR_LINK,
+  UNORDERED_LIST_ITEM,
+  ORDERED_LIST_ITEM
+} = DISPLAY_TYPES
 
 module.exports = class RawTextDisplayParser {
   constructor(options = {}) {
@@ -168,12 +177,12 @@ module.exports = class RawTextDisplayParser {
     let position = this.position
     while (true) {
       const start = getLineStart(this.text, index)
-      const end = start + 2
       if (
         start >= from &&
-        end < Math.min(to, this.text.length) &&
-        isUnorderedList(this.text.slice(start, end))
+        start + 2 <= Math.min(to, this.text.length) &&
+        isUnorderedList(this.text.slice(start, start + 2))
       ) {
+        const end = start + 2
         const alreadyCovered = this.display.some(
           (d) =>
             d.start <= start && d.end >= end && d.type === UNORDERED_LIST_ITEM
@@ -182,8 +191,35 @@ module.exports = class RawTextDisplayParser {
           const length = this.text.length
           this.onlist(start, end, UNORDERED_LIST_ITEM)
           if (end < position) position += this.text.length - length
+          to += this.text.length - length
 
           // the host may have grown or shrunk this.text, find the line's end again from its start
+          index = getLineEnd(this.text, start)
+        }
+      }
+
+      const nextDot = this.text.indexOf(OrderedListInputDotMark, start)
+      if (
+        start >= from &&
+        nextDot + 2 <= Math.min(to, this.text.length) &&
+        isOrderedList(this.text.slice(start, nextDot + 2))
+      ) {
+        const end = nextDot + 2
+        const alreadyCovered = this.display.some(
+          (d) =>
+            d.start <= start && d.end >= end && d.type === ORDERED_LIST_ITEM
+        )
+        if (!alreadyCovered) {
+          const length = this.text.length
+          this.onlist(
+            start,
+            end,
+            ORDERED_LIST_ITEM,
+            Number(this.text.slice(start, nextDot))
+          )
+          if (end < position) position += this.text.length - length
+          to += this.text.length - length
+
           index = getLineEnd(this.text, start)
         }
       }
@@ -348,6 +384,13 @@ module.exports = class RawTextDisplayParser {
         this.text[d.start - 1] !== NewLine
       ) {
         this._removeText(d.start, d.start + 1, UnorderedListInputMark)
+      } else if (
+        d.type === ORDERED_LIST_ITEM &&
+        d.start > 0 &&
+        this.text[d.start - 1] !== NewLine
+      ) {
+        // the typed mark is already the original text, only drop the display
+        this.display.splice(i, 1)
       }
     }
 
@@ -358,12 +401,18 @@ module.exports = class RawTextDisplayParser {
       return this.onlist(lineStart, this.position, UNORDERED_LIST_ITEM)
     }
 
+    if (isOrderedListEntry(line)) {
+      return this.onlist(lineStart, this.position, ORDERED_LIST_ITEM, 1)
+    }
+
     if (inserted !== NewLine) return
 
     // enter on a list item continues the list on the new line
     const prevStart = getLineStart(this.text, lineStart - 1)
     const item = this.display.find(
-      (d) => d.start === prevStart && d.type === UNORDERED_LIST_ITEM
+      (d) =>
+        d.start === prevStart &&
+        [UNORDERED_LIST_ITEM, ORDERED_LIST_ITEM].includes(d.type)
     )
 
     if (!item) return
@@ -375,7 +424,12 @@ module.exports = class RawTextDisplayParser {
       return this._removeText(item.start, this.position)
     }
 
-    this.onlist(this.position, this.position, item.type)
+    this.onlist(
+      this.position,
+      this.position,
+      item.type,
+      item.type === ORDERED_LIST_ITEM ? item.index + 1 : undefined
+    )
   }
 
   resync(text) {
@@ -448,6 +502,39 @@ module.exports = class RawTextDisplayParser {
     this._fireList(_text.slice(end, startNew))
     startNew > end && this._fireAllLists(end, startNew)
     this._fireAllWords(from, to)
+    this._reindexOrderedLists()
+  }
+
+  _reindexOrderedLists() {
+    let prev = null
+    let delta = 0
+    for (const d of this.display) {
+      d.start += delta
+      d.end += delta
+
+      if (d.type !== ORDERED_LIST_ITEM) continue
+
+      // an item on the line right after the previous item continues its list
+      const continues =
+        prev !== null && getLineStart(this.text, d.start - 1) === prev.start
+      const index = continues ? prev.index + 1 : 1
+      if (d.index !== index) {
+        const newContent = `${index}${OrderedListInputDotMark}${BlankSpace}`
+        const contentDelta = newContent.length - d.content.length
+
+        this.text = `${this.text.slice(0, d.start)}${newContent}${this.text.slice(d.end)}`
+        d.start < this.position && (this.position += contentDelta)
+
+        d.content = newContent
+        d.index = index
+        d.length = newContent.length
+        d.end += contentDelta
+
+        delta += contentDelta
+      }
+      prev = d
+    }
+    this._updateWord()
   }
 
   setEmoji(input, code, emoji, isDefaultEmoji) {
@@ -571,11 +658,13 @@ module.exports = class RawTextDisplayParser {
     return true
   }
 
-  setList(start, end, type) {
+  setList(start, end, type, index) {
     if (start < 0 || end < start || end > this.text.length) return false
 
     const content =
-      type === UNORDERED_LIST_ITEM ? `${UnorderedListOutMark}${BlankSpace}` : ''
+      type === UNORDERED_LIST_ITEM
+        ? `${UnorderedListOutMark}${BlankSpace}`
+        : `${index}${OrderedListInputDotMark}${BlankSpace}`
     this.selectRange(start, end)
     this.appendText(content)
 
@@ -586,6 +675,8 @@ module.exports = class RawTextDisplayParser {
       content,
       length: content.length
     }
+
+    if (type === ORDERED_LIST_ITEM) upd.index = index
 
     this._clearPrevious(upd.start, upd.end)
     this._insertDisplay(upd)
