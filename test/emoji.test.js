@@ -252,9 +252,6 @@ test('setUnicodeEmoji clears previous overlapping emoji marks', (t) => {
 
   p.appendText('😀😃')
 
-  // const ok1 = p.setUnicodeEmoji(0, '😀'.length, 'grinning')
-  // t.ok(ok1)
-
   t.alike(p.display, [
     {
       type: DISPLAY_TYPES.EMOJI,

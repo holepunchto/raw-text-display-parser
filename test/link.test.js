@@ -1,13 +1,12 @@
 const test = require('brittle')
 
-const Parser = require('..')
+const { makeParser } = require('./helpers')
 const { DISPLAY_TYPES } = require('../utils')
 
 test('setLink creates http-link display entry', (t) => {
-  const p = new Parser()
+  const p = makeParser()
   const link = 'http://example.com'
   p.appendText(link)
-  p.setLink(link, link)
   t.alike(p.display, [
     {
       type: DISPLAY_TYPES.HTTP_LINK,
@@ -20,12 +19,10 @@ test('setLink creates http-link display entry', (t) => {
 })
 
 test('setLink with text before link', (t) => {
-  const p = new Parser()
+  const p = makeParser()
   const text = 'Hello http://example.com'
   const link = 'http://example.com'
-  p.appendText(text)
-  p.setPosition(12) // position inside the link
-  p.setLink(link, link)
+  p.resync(text)
   t.alike(p.display, [
     {
       type: DISPLAY_TYPES.HTTP_LINK,
@@ -38,12 +35,10 @@ test('setLink with text before link', (t) => {
 })
 
 test('setLink with text after link', (t) => {
-  const p = new Parser()
+  const p = makeParser()
   const text = 'http://example.com world'
   const link = 'http://example.com'
-  p.appendText(text)
-  p.setPosition(5) // position inside the link
-  p.setLink(link, link)
+  p.resync(text)
   t.alike(p.display, [
     {
       type: DISPLAY_TYPES.HTTP_LINK,
@@ -56,12 +51,10 @@ test('setLink with text after link', (t) => {
 })
 
 test('setLink with text before and after link', (t) => {
-  const p = new Parser()
+  const p = makeParser()
   const text = 'Hello http://example.com world'
   const link = 'http://example.com'
-  p.appendText(text)
-  p.setPosition(12) // position inside the link
-  p.setLink(link, link)
+  p.resync(text)
   t.alike(p.display, [
     {
       type: DISPLAY_TYPES.HTTP_LINK,
@@ -74,12 +67,10 @@ test('setLink with text before and after link', (t) => {
 })
 
 test('setLink with text line before link', (t) => {
-  const p = new Parser()
+  const p = makeParser()
   const text = 'Hello\nhttp://example.com'
   const link = 'http://example.com'
-  p.appendText(text)
-  p.setPosition(8) // position inside the link
-  p.setLink(link, link)
+  p.resync(text)
   t.alike(p.display, [
     {
       type: DISPLAY_TYPES.HTTP_LINK,
@@ -92,12 +83,10 @@ test('setLink with text line before link', (t) => {
 })
 
 test('setLink with text line after link', (t) => {
-  const p = new Parser()
+  const p = makeParser()
   const text = 'http://example.com\nworld'
   const link = 'http://example.com'
-  p.appendText(text)
-  p.setPosition(5) // position inside the link
-  p.setLink(link, link)
+  p.resync(text)
   t.alike(p.display, [
     {
       type: DISPLAY_TYPES.HTTP_LINK,
@@ -110,18 +99,15 @@ test('setLink with text line after link', (t) => {
 })
 
 test('setLink with text lines before and after link', (t) => {
-  const p = new Parser()
+  const p = makeParser()
   const text = 'Hello\nhttp://example.com\nworld'
-  const link = 'http://example.com'
-  p.appendText(text)
-  p.setPosition(8) // position inside the link
-  p.setLink(link, link)
+  p.resync(text)
   t.alike(p.display, [
     {
       type: DISPLAY_TYPES.HTTP_LINK,
       start: 6,
       end: 24,
-      content: link,
+      content: 'http://example.com',
       length: 18
     }
   ])
@@ -129,7 +115,7 @@ test('setLink with text lines before and after link', (t) => {
 
 test('resync fires onlink for every link in a multi-link paste', (t) => {
   const links = []
-  const p = new Parser({
+  const p = makeParser({
     onlink(link) {
       links.push(link)
     }
@@ -148,7 +134,7 @@ test('resync fires onlink for every link in a multi-link paste', (t) => {
 
 test('resync fires onlink for every link separated by spaces', (t) => {
   const links = []
-  const p = new Parser({
+  const p = makeParser({
     onlink(link) {
       links.push(link)
     }
@@ -165,7 +151,7 @@ test('resync fires onlink for every link separated by spaces', (t) => {
 
 test('resync does not re-fire onlink for already preserved display entries', (t) => {
   const links = []
-  const p = new Parser({
+  const p = makeParser({
     onlink(link) {
       links.push(link)
     }
@@ -197,7 +183,7 @@ test('resync does not re-fire onlink for already preserved display entries', (t)
 
 test('resync fires onlink for all links mixed with plain text', (t) => {
   const links = []
-  const p = new Parser({
+  const p = makeParser({
     onlink(link) {
       links.push(link)
     }
