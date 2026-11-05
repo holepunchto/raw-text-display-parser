@@ -20,74 +20,17 @@ declare namespace RawTextDisplayParser {
   type ListItemType =
     DisplayTypes['UNORDERED_LIST_ITEM'] | DisplayTypes['ORDERED_LIST_ITEM']
 
-  interface DisplayBase {
+  interface Display {
     type: DisplayType
-    /** Offset of the first code unit covered by this display */
     start: number
-    /** Offset one past the last code unit covered by this display */
     end: number
-    /** Number of code units covered, `end - start` */
     length: number
-  }
-
-  interface EmojiDisplay extends DisplayBase {
-    type: DisplayTypes['EMOJI']
-    /** Shortcode without the surrounding colons, e.g. `smile` */
-    content: string
-  }
-
-  interface MentionDisplay extends DisplayBase {
-    type: DisplayTypes['MENTION']
-    memberId: string | number
-  }
-
-  interface HttpLinkDisplay extends DisplayBase {
-    type: DisplayTypes['HTTP_LINK']
-    content: string
-  }
-
-  interface PearLinkDisplay extends DisplayBase {
-    type: DisplayTypes['PEAR_LINK']
-    content: string
-  }
-
-  interface UnorderedListItemDisplay extends DisplayBase {
-    type: DisplayTypes['UNORDERED_LIST_ITEM']
-    /** The rendered marker, `● ` */
-    content: string
-  }
-
-  interface OrderedListItemDisplay extends DisplayBase {
-    type: DisplayTypes['ORDERED_LIST_ITEM']
-    /** The rendered marker, e.g. `1. ` */
-    content: string
-    /** 1-based position of the item in its list */
-    index: number
-  }
-
-  /** Display types the parser never emits itself but the host may keep in the array */
-  type HostDisplayType =
-    | DisplayTypes['BOLD']
-    | DisplayTypes['ITALIC']
-    | DisplayTypes['CODE']
-    | DisplayTypes['CODE_BLOCK']
-    | DisplayTypes['STRIKE_THROUGH']
-    | DisplayTypes['TRANSLATION']
-
-  interface OtherDisplay extends DisplayBase {
-    type: HostDisplayType
     content?: string
-    [key: string]: unknown
+    /** type: DisplayTypes['MENTION'] only */
+    memberId?: string
+    /** type: DisplayTypes['ORDERED_LIST_ITEM'] only */
+    index?: number
   }
-
-  type Display =
-    | EmojiDisplay
-    | MentionDisplay
-    | HttpLinkDisplay
-    | PearLinkDisplay
-    | UnorderedListItemDisplay
-    | OrderedListItemDisplay
-    | OtherDisplay
 
   interface Range {
     start: number
@@ -97,7 +40,7 @@ declare namespace RawTextDisplayParser {
   interface Options {
     /** Initial text, defaults to `''` */
     text?: string
-    /** Initial displays, defaults to `[]`. The array is mutated in place */
+    /** Initial displays, defaults to `[]` */
     display?: Display[]
     /** Scheme matched by `onpearlink`, defaults to `'pear'` */
     protocol?: string
@@ -122,12 +65,7 @@ declare namespace RawTextDisplayParser {
     ) => void
   }
 
-  interface ResetOptions {
-    text?: string
-    display?: Display[]
-  }
-
-  interface FlushResult {
+  interface ResultData {
     text: string
     display: Display[]
   }
@@ -150,21 +88,16 @@ declare class RawTextDisplayParser {
   /** End offset of `word` */
   end: number
 
-  onmention: (word: string) => void
-  onlink: (word: string) => void
-  onpearlink: (word: string) => void
-  onemoji: (word: string) => void
-  ondefaultemoji: (emoji: string) => void
-  onclear: (word: string) => void
-  onlist: (
-    start: number,
-    end: number,
-    type: RawTextDisplayParser.ListItemType,
-    index?: number
-  ) => void
+  onmention: RawTextDisplayParser.Options['onmention']
+  onlink: RawTextDisplayParser.Options['onlink']
+  onpearlink: RawTextDisplayParser.Options['onpearlink']
+  onemoji: RawTextDisplayParser.Options['onemoji']
+  ondefaultemoji: RawTextDisplayParser.Options['ondefaultemoji']
+  onclear: RawTextDisplayParser.Options['onclear']
+  onlist: RawTextDisplayParser.Options['onlist']
 
   /** Replace text and displays, moving the cursor to the end */
-  reset(options?: RawTextDisplayParser.ResetOptions): void
+  reset(options?: Partial<RawTextDisplayParser.ResultData>): void
   /** Move the cursor and collapse the selection */
   setPosition(position: number): void
   /** Select `[start, end)` and move the cursor to `start` */
@@ -182,7 +115,7 @@ declare class RawTextDisplayParser {
    * Returns the text and displays. If `text` differs from the parser's text the
    * displays are dropped.
    */
-  flush(text?: string): RawTextDisplayParser.FlushResult
+  flush(text?: string): RawTextDisplayParser.ResultData
 
   /**
    * Mark the current word as an emoji. Returns `false` if `input` is not the current word.
@@ -199,7 +132,7 @@ declare class RawTextDisplayParser {
   /** Mark `[start, end)` as the unicode emoji `shortcode` without dispatching */
   setUnicodeEmoji(start: number, end: number, shortcode: string): boolean
   /** Mark the current word as a mention, replacing it with `name` when they differ */
-  setMention(input: string, name: string, memberId: string | number): boolean
+  setMention(input: string, name: string, memberId: string): boolean
   /** Mark the current word as an http link */
   setLink(input: string, link: string): boolean
   /** Mark the current word as a `<protocol>://` link */
