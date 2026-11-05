@@ -11,7 +11,6 @@ const makeParser = (options = {}) => {
         return p.setMention(mention, '@bob', 'member-id-b')
       if (mention.startsWith('@d'))
         return p.setMention(mention, '@david', 'member-id-d')
-      p.setMention(mention, '@bob', 'member-id-b')
     },
     onemoji: (emoji) => {
       const emojis = {

@@ -1,10 +1,10 @@
 const test = require('brittle')
 
-const Parser = require('..')
+const { makeParser } = require('./helpers')
 const { DISPLAY_TYPES } = require('../utils')
 
 test('apply two mentions', function (t) {
-  const p = new Parser()
+  const p = makeParser()
 
   p.appendText('00 @user')
 
@@ -39,7 +39,7 @@ test('apply two mentions', function (t) {
 })
 
 test('apply two mentions, then remove 1st one, then reapply it', function (t) {
-  const p = new Parser()
+  const p = makeParser()
 
   p.appendText('00 @user')
   // Apply 1st mention
@@ -119,7 +119,7 @@ test('apply mention without space', function (t) {
   let mentionCalled = 0
   let lastWord = ''
   let clearCalled = 0
-  const p = new Parser({
+  const p = makeParser({
     onmention: (mention) => {
       mentionCalled++
       lastWord = mention
@@ -152,7 +152,7 @@ test('appendText clears with onclear when word is not a mention', (t) => {
   let mentionCalled = 0
   let clearCalled = 0
 
-  const p = new Parser({
+  const p = makeParser({
     onmention: () => mentionCalled++,
     onclear: () => clearCalled++
   })
@@ -164,7 +164,7 @@ test('appendText clears with onclear when word is not a mention', (t) => {
 })
 
 test('setMention replaces word and inserts display entry', (t) => {
-  const p = new Parser()
+  const p = makeParser()
 
   p.appendText('@us')
   const success = p.setMention('@us', '@user', '1')
@@ -185,7 +185,7 @@ test('setMention replaces word and inserts display entry', (t) => {
 })
 
 test('setMention returns false if current word does not match', (t) => {
-  const p = new Parser()
+  const p = makeParser()
 
   p.appendText('hello')
 
@@ -197,7 +197,7 @@ test('setMention returns false if current word does not match', (t) => {
 test('setMention 1st time then go to start setMention 2nd time', (t) => {
   let mentionCalled = 0
   let lastWord = ''
-  const p = new Parser({
+  const p = makeParser({
     onmention: (mention) => {
       mentionCalled++
       lastWord = mention
@@ -257,7 +257,7 @@ test('setMention 1st time then go to start setMention 2nd time', (t) => {
 test('mention the name that contain space and default-emoji', (t) => {
   let mentionCalled = 0
   let lastWord = ''
-  const p = new Parser({
+  const p = makeParser({
     onmention: (mention) => {
       mentionCalled++
       lastWord = mention
@@ -325,7 +325,7 @@ test('mention the name that contain space and default-emoji', (t) => {
 })
 
 test('mention at the start, before another mentioned', function (t) {
-  const p = new Parser({
+  const p = makeParser({
     onmention: (mention) => p.setMention(mention, '@alice', 'member-id-a')
   })
 
@@ -365,7 +365,7 @@ test('mention at the start, before another mentioned', function (t) {
 })
 
 test('mention at the start, before another mentioned and text', function (t) {
-  const p = new Parser({
+  const p = makeParser({
     text: '7777@alice ',
     display: [
       {
