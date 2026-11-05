@@ -1,5 +1,5 @@
 const test = require('brittle')
-const Parser = require('..')
+const { makeParser } = require('./helpers')
 const { DISPLAY_TYPES } = require('../utils')
 
 const { HTTP_LINK, PEAR_LINK, MENTION, EMOJI } = DISPLAY_TYPES
@@ -7,7 +7,7 @@ const { HTTP_LINK, PEAR_LINK, MENTION, EMOJI } = DISPLAY_TYPES
 test('httpLink', (t) => {
   const text = 'https://keet.io'
 
-  const p = new Parser({ onlink: (link) => p.setLink(link, link) })
+  const p = makeParser()
   p.appendText(text)
 
   t.alike(p.display, [
@@ -24,7 +24,7 @@ test('httpLink', (t) => {
 test('pearLink', (t) => {
   const text = 'pear://keet/abcd'
 
-  const p = new Parser({ onpearlink: (link) => p.setPearLink(link) })
+  const p = makeParser()
   p.appendText(text)
 
   t.alike(p.display, [
@@ -39,33 +39,23 @@ test('pearLink', (t) => {
 })
 
 test('mention', (t) => {
-  const text = '@username'
-  const memberId = 123
-
-  const p = new Parser({
-    onmention: (mention) => p.setMention(mention, mention, memberId)
-  })
-  p.appendText(text)
+  const p = makeParser()
+  p.appendText('@bob')
 
   t.alike(p.display, [
     {
       type: MENTION,
       start: 0,
-      end: 9,
-      memberId,
-      length: 9
+      end: 4,
+      memberId: 'member-id',
+      length: 4
     }
   ])
 })
 
 test('emoji', (t) => {
-  const text = ':pear:'
-  const emojis = { ':pear:': '🍐' }
-
-  const p = new Parser({
-    onemoji: (emoji) => p.setEmoji(emoji, emoji, emojis[emoji])
-  })
-  p.appendText(text)
+  const p = makeParser()
+  p.appendText(':pear:')
 
   t.alike(p.display, [
     {
@@ -79,21 +69,18 @@ test('emoji', (t) => {
 })
 
 test('emoji not found', (t) => {
-  const text = ':pear:'
-  const emojis = {}
+  const text = ':pearx:'
 
-  const p = new Parser({
-    onemoji: (emoji) => p.setEmoji(emoji, emoji, emojis[emoji])
-  })
+  const p = makeParser()
   p.appendText(text)
 
   t.alike(p.display, [
     {
       type: EMOJI,
       start: 0,
-      end: 6,
-      content: 'pear',
-      length: 6
+      end: 7,
+      content: 'pearx',
+      length: 7
     }
   ])
 })
@@ -102,7 +89,7 @@ test('ondefaultemoji is called for default emoji tokens', (t) => {
   let called = 0
   let last = null
 
-  const p = new Parser({
+  const p = makeParser({
     ondefaultemoji: (word) => {
       called++
       last = word
@@ -116,7 +103,7 @@ test('ondefaultemoji is called for default emoji tokens', (t) => {
 
 test('flush', (t) => {
   const text = 'http://keet.io'
-  const p = new Parser({ onlink: (link) => p.setLink(link, link) })
+  const p = makeParser()
   p.appendText(text)
 
   t.is(p.text, text)
