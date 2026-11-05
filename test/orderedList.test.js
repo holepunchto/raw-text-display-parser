@@ -1142,3 +1142,13 @@ test('deleting one digit of a two-digit marker drops that item out of the list.'
     orderedListDisplay(50, 1)
   ])
 })
+
+test('add new item in the middle ordered list', (t) => {
+  const p = makeParser(getList(3))
+
+  p.setPosition(4)
+  p.resync('1. a\n\n2. b\n3. c')
+
+  t.is(p.text, '1. a\n2. \n3. b\n4. c')
+  t.is(p.position, 8)
+})
