@@ -1,6 +1,6 @@
 const test = require('brittle')
 
-const Parser = require('..')
+const { makeParser } = require('./helpers')
 const { DISPLAY_TYPES } = require('../utils')
 
 const mention = (start, content, memberId) => ({
@@ -13,7 +13,7 @@ const mention = (start, content, memberId) => ({
 
 test('resync when paste to empty input', function (t) {
   let params = null
-  const p = new Parser({
+  const p = makeParser({
     onlink(link) {
       params = link
     }
@@ -39,7 +39,7 @@ test('resync when paste to empty input', function (t) {
 
 test('resync when select the whole input and paste', function (t) {
   let params = null
-  const p = new Parser({
+  const p = makeParser({
     onpearlink(link) {
       params = link
     }
@@ -67,7 +67,7 @@ test('resync when select the whole input and paste', function (t) {
 })
 
 test('resync when select a range input and paste', function (t) {
-  const p = new Parser()
+  const p = makeParser()
 
   // typing '12 1234 123.4567 1234'
   p.appendText('12 1234 123.4567 1234')
@@ -91,7 +91,7 @@ test('resync when select a range input and paste', function (t) {
 
 test('resync when select a range input and paste a link', function (t) {
   let params = null
-  const p = new Parser({
+  const p = makeParser({
     onlink(link) {
       params = link
     }
@@ -120,7 +120,7 @@ test('resync when select a range input and paste a link', function (t) {
 })
 
 test('resync when select a range input and paste a link should keep old display', function (t) {
-  const p = new Parser()
+  const p = makeParser()
 
   const link = 'http://example.com'
   p.appendText(link)
@@ -210,7 +210,7 @@ test('resync for append case', function (t) {
       memberId: '002'
     }
   ]
-  const p = new Parser({
+  const p = makeParser({
     display,
     text: '@Silly Water Dragon 123 @Handsome Dragon'
   })
@@ -221,7 +221,7 @@ test('resync for append case', function (t) {
 })
 
 test('resync for remove all text case', function (t) {
-  const p = new Parser({
+  const p = makeParser({
     display: [],
     text: '1'
   })
@@ -232,7 +232,7 @@ test('resync for remove all text case', function (t) {
 
 test('resync link list', function (t) {
   let counter = 0
-  const p = new Parser({
+  const p = makeParser({
     onlink(link) {
       counter++
       p.setLink(link, link)
@@ -271,7 +271,7 @@ test('resync link list', function (t) {
 })
 
 test('resync: repeated character keeps the cursor at the end', function (t) {
-  const p = new Parser()
+  const p = makeParser()
 
   p.resync('aa')
   t.is(p.text, 'aa')
@@ -298,7 +298,7 @@ test('resync test remove mention', function (t) {
     memberId: 'member-id-0'
   }
 
-  const p = new Parser({
+  const p = makeParser({
     onmention(mention) {
       p.setMention(mention, '@bob', 'member-id-0')
     }
@@ -326,7 +326,7 @@ test('resync test remove mention', function (t) {
 })
 
 test('resync test modify mention', function (t) {
-  const p = new Parser({
+  const p = makeParser({
     onmention(mention) {
       p.setMention(mention, '@bob', 'member-id-0')
     }
@@ -360,7 +360,7 @@ test('resync test modify mention', function (t) {
 })
 
 test('resync test middle modification', function (t) {
-  const p = new Parser()
+  const p = makeParser()
 
   p.resync('xaay')
   t.is(p.text, 'xaay')
@@ -374,7 +374,7 @@ test('resync test middle modification', function (t) {
 })
 
 test('resync test start modification', function (t) {
-  const p = new Parser()
+  const p = makeParser()
 
   p.resync('b')
   t.is(p.text, 'b')
@@ -404,11 +404,7 @@ test('resync test modify emoji', function (t) {
     length: 2
   }
 
-  const p = new Parser({
-    ondefaultemoji: (word) => {
-      p.setEmoji(word, 'grinning', word, true)
-    }
-  })
+  const p = makeParser()
 
   p.resync('x 😀 😀 y')
   t.is(p.text, 'x 😀 😀 y')
@@ -422,11 +418,7 @@ test('resync test modify emoji', function (t) {
 })
 
 test('resync deleting one emoji keep one emoji', function (t) {
-  const p = new Parser({
-    ondefaultemoji: (word) => {
-      p.setEmoji(word, 'grinning', word, true)
-    }
-  })
+  const p = makeParser()
 
   p.resync('😀😀 ')
   t.is(p.text, '😀😀 ')
@@ -470,7 +462,7 @@ test('resync: manual pick 2 emojis, then manual delete 1st one using backspace',
     length: 2
   })
 
-  const p = new Parser({
+  const p = makeParser({
     ondefaultemoji: (word) => {
       if (word === '😀') p.setEmoji(word, 'grinning', word, true)
       if (word === '🚀') p.setEmoji(word, 'rocket', word, true)
@@ -527,7 +519,7 @@ test('resync: manual pick 2 emojis, then manual delete 1st one using resync', fu
     length: 2
   })
 
-  const p = new Parser({
+  const p = makeParser({
     ondefaultemoji: (word) => {
       if (word === '😀') p.setEmoji(word, 'grinning', word, true)
       if (word === '🚀') p.setEmoji(word, 'rocket', word, true)
@@ -575,7 +567,7 @@ test('resync: manual pick 2 emojis, then manual delete 1st one using resync', fu
 })
 
 test('resync deleting one of two identical adjacent emojis keeps one display', function (t) {
-  const p = new Parser()
+  const p = makeParser()
 
   p.appendText('😀😀 ')
   p.setUnicodeEmoji(0, 2, 'grinning')
@@ -597,7 +589,7 @@ test('resync deleting one of two identical adjacent emojis keeps one display', f
 })
 
 test('resync typing a repeated character keeps the cursor after it', function (t) {
-  const p = new Parser()
+  const p = makeParser()
 
   p.appendText('aa')
   p.resync('aaa')
@@ -607,7 +599,7 @@ test('resync typing a repeated character keeps the cursor after it', function (t
 })
 
 test('resync deleting an emoji that shares a surrogate with the next keeps the next display', function (t) {
-  const p = new Parser()
+  const p = makeParser()
 
   p.appendText('😀😃 ')
   p.setUnicodeEmoji(0, 2, 'grinning')
@@ -629,7 +621,7 @@ test('resync deleting an emoji that shares a surrogate with the next keeps the n
 })
 
 test('resync deleting a multi-unit emoji whose prefix matches the next keeps the next display', function (t) {
-  const p = new Parser()
+  const p = makeParser()
 
   p.appendText('👍🏽👍 ')
   p.setUnicodeEmoji(0, 4, 'thumbsup_tone3')
@@ -651,7 +643,7 @@ test('resync deleting a multi-unit emoji whose prefix matches the next keeps the
 })
 
 test('resync - insert at start', (t) => {
-  const p = new Parser({ text: 'world' })
+  const p = makeParser({ text: 'world' })
 
   p.resync('hello world')
 
@@ -660,7 +652,7 @@ test('resync - insert at start', (t) => {
 })
 
 test('resync - insert in the middle', (t) => {
-  const p = new Parser({ text: 'hello world' })
+  const p = makeParser({ text: 'hello world' })
 
   p.resync('hello big world')
 
@@ -669,7 +661,7 @@ test('resync - insert in the middle', (t) => {
 })
 
 test('resync - insert at end', (t) => {
-  const p = new Parser({ text: 'hello' })
+  const p = makeParser({ text: 'hello' })
 
   p.resync('hello world')
 
@@ -678,7 +670,7 @@ test('resync - insert at end', (t) => {
 })
 
 test('resync - delete at start', (t) => {
-  const p = new Parser({ text: 'hello world' })
+  const p = makeParser({ text: 'hello world' })
 
   p.resync('world')
 
@@ -687,7 +679,7 @@ test('resync - delete at start', (t) => {
 })
 
 test('resync - delete in the middle', (t) => {
-  const p = new Parser({ text: 'hello big world' })
+  const p = makeParser({ text: 'hello big world' })
 
   p.resync('hello world')
 
@@ -696,7 +688,7 @@ test('resync - delete in the middle', (t) => {
 })
 
 test('resync - delete at end', (t) => {
-  const p = new Parser({ text: 'hello world' })
+  const p = makeParser({ text: 'hello world' })
 
   p.resync('hello')
 
@@ -705,7 +697,7 @@ test('resync - delete at end', (t) => {
 })
 
 test('resync - replace at start', (t) => {
-  const p = new Parser({ text: 'hello world' })
+  const p = makeParser({ text: 'hello world' })
 
   p.resync('bye world')
 
@@ -714,7 +706,7 @@ test('resync - replace at start', (t) => {
 })
 
 test('resync - replace in the middle', (t) => {
-  const p = new Parser({ text: 'hello big world' })
+  const p = makeParser({ text: 'hello big world' })
 
   p.resync('hello small world')
 
@@ -723,7 +715,7 @@ test('resync - replace in the middle', (t) => {
 })
 
 test('resync - replace at end', (t) => {
-  const p = new Parser({ text: 'hello world' })
+  const p = makeParser({ text: 'hello world' })
 
   p.resync('hello there')
 
@@ -732,7 +724,7 @@ test('resync - replace at end', (t) => {
 })
 
 test('resync - insert before a display item shifts it', (t) => {
-  const p = new Parser({
+  const p = makeParser({
     text: '@alice and @bob hi',
     display: [mention(0, '@alice'), mention(11, '@bob')]
   })
@@ -747,7 +739,7 @@ test('resync - insert before a display item shifts it', (t) => {
 
 test('resync - insert after a display item leaves it alone', (t) => {
   const aliceMention = mention(0, '@alice')
-  const p = new Parser({ text: '@alice hi', display: [aliceMention] })
+  const p = makeParser({ text: '@alice hi', display: [aliceMention] })
 
   p.resync('@alice hi there')
 
@@ -756,7 +748,7 @@ test('resync - insert after a display item leaves it alone', (t) => {
 })
 
 test('resync - delete before a display item shifts it back', (t) => {
-  const p = new Parser({
+  const p = makeParser({
     text: 'Hey @alice hi',
     display: [mention(4, '@alice')]
   })
@@ -768,17 +760,18 @@ test('resync - delete before a display item shifts it back', (t) => {
 })
 
 test('resync - editing inside a display item removes it', (t) => {
-  const p = new Parser({ text: '@alice hi', display: [mention(0, '@alice')] })
+  const p = makeParser({ text: '@xlice hi', display: [mention(0, '@xlice')] })
 
-  p.resync('@alce hi')
+  p.setPosition(4)
+  p.resync('@xlce hi')
 
-  t.is(p.text, '@alce hi')
+  t.is(p.text, '@xlce hi')
   t.is(p.position, 3)
   t.alike(p.display, [])
 })
 
 test('resync - deleting a display item removes it', (t) => {
-  const p = new Parser({ text: '@alice hi', display: [mention(0, '@alice')] })
+  const p = makeParser({ text: '@alice hi', display: [mention(0, '@alice')] })
 
   p.resync(' hi')
 
@@ -789,7 +782,7 @@ test('resync - deleting a display item removes it', (t) => {
 
 test('resync - only items after the edit shift', (t) => {
   const aliceMention = mention(0, '@alice')
-  const p = new Parser({
+  const p = makeParser({
     text: '@alice and @bob and @david',
     display: [aliceMention, mention(11, '@bob'), mention(20, '@david')]
   })
@@ -804,20 +797,21 @@ test('resync - only items after the edit shift', (t) => {
 })
 
 test('resync - edit spanning two display items removes both', (t) => {
-  const p = new Parser({
-    text: '@alice and @bob',
-    display: [mention(0, '@alice'), mention(11, '@bob')]
+  const p = makeParser({
+    text: '@xnna and @bob',
+    display: [mention(0, '@xnna'), mention(10, '@bob')]
   })
 
-  p.resync('@alob')
+  p.selectRange(3, 13)
+  p.resync('@xnb')
 
-  t.is(p.text, '@alob')
+  t.is(p.text, '@xnb')
   t.is(p.position, 3)
   t.alike(p.display, [])
 })
 
 test('resync - from empty text', (t) => {
-  const p = new Parser()
+  const p = makeParser()
 
   p.resync('hello')
 
@@ -827,7 +821,7 @@ test('resync - from empty text', (t) => {
 })
 
 test('resync - to empty text clears display', (t) => {
-  const p = new Parser({ text: '@alice hi', display: [mention(0, '@alice')] })
+  const p = makeParser({ text: '@alice hi', display: [mention(0, '@alice')] })
 
   p.resync('')
 
@@ -837,7 +831,7 @@ test('resync - to empty text clears display', (t) => {
 })
 
 test('resync - replacing the whole text clears display', (t) => {
-  const p = new Parser({ text: '@alice hi', display: [mention(0, '@alice')] })
+  const p = makeParser({ text: '@alice hi', display: [mention(0, '@alice')] })
 
   p.resync('bye')
 
@@ -847,7 +841,7 @@ test('resync - replacing the whole text clears display', (t) => {
 })
 
 test('resync - single character replace at start', (t) => {
-  const p = new Parser({ text: 'hello' })
+  const p = makeParser({ text: 'hello' })
 
   p.resync('jello')
 
@@ -856,7 +850,7 @@ test('resync - single character replace at start', (t) => {
 })
 
 test('resync - single character replace at start mention', (t) => {
-  const p = new Parser({ text: '@alice hi', display: [mention(0, '@alice')] })
+  const p = makeParser({ text: '@alice hi', display: [mention(0, '@alice')] })
 
   p.resync('j@alice hi')
 
@@ -866,7 +860,7 @@ test('resync - single character replace at start mention', (t) => {
 })
 
 test('resync - multi-line text', (t) => {
-  const p = new Parser({ text: 'hi\n@alice', display: [mention(3, '@alice')] })
+  const p = makeParser({ text: 'hi\n@alice', display: [mention(3, '@alice')] })
 
   p.resync('hi there\n@alice')
 
@@ -876,18 +870,18 @@ test('resync - multi-line text', (t) => {
 })
 
 test('resync - insert immediately after an item leaves it alone', (t) => {
-  const aliceMention = mention(0, '@alice')
-  const p = new Parser({ text: '@alice hi', display: [aliceMention] })
+  const aliceMention = mention(0, '@xlice')
+  const p = makeParser({ text: '@xlice hi', display: [aliceMention] })
 
-  p.resync('@alice, hi')
+  p.resync('@xlice, hi')
 
-  t.is(p.text, '@alice, hi')
+  t.is(p.text, '@xlice, hi')
   t.is(p.position, 7)
   t.alike(p.display, [aliceMention])
 })
 
 test('resync - delete the character right before an item shifts it back', (t) => {
-  const p = new Parser({ text: 'Hey @alice', display: [mention(4, '@alice')] })
+  const p = makeParser({ text: 'Hey @alice', display: [mention(4, '@alice')] })
 
   p.resync('Hey@alice')
 
@@ -897,16 +891,17 @@ test('resync - delete the character right before an item shifts it back', (t) =>
 })
 
 test('resync - delete the character right after an item leaves it alone', (t) => {
-  const p = new Parser({ text: '@alice hi', display: [mention(0, '@alice')] })
+  const p = makeParser({ text: '@clio hi', display: [mention(0, '@clio')] })
 
-  p.resync('@alicehi')
+  p.setPosition(6)
+  p.resync('@cliohi')
 
-  t.is(p.position, 6)
-  t.alike(p.display, [mention(0, '@alice')])
+  t.is(p.position, 5)
+  t.alike(p.display, [mention(0, '@clio')])
 })
 
 test('resync - deleting the first character of an item removes it', (t) => {
-  const p = new Parser({ text: '@alice hi', display: [mention(0, '@alice')] })
+  const p = makeParser({ text: '@alice hi', display: [mention(0, '@alice')] })
 
   p.resync('alice hi')
 
@@ -916,17 +911,21 @@ test('resync - deleting the first character of an item removes it', (t) => {
 })
 
 test('resync - deleting the last character of an item removes it', (t) => {
-  const p = new Parser({ text: '@alice hi', display: [mention(0, '@alice')] })
+  const p = makeParser({
+    text: '@alice hi',
+    display: [mention(0, '@alice', 'member-id-a')]
+  })
 
-  p.resync('@alic hi')
+  p.setPosition(1)
+  p.resync('@lice hi')
 
-  t.is(p.text, '@alic hi')
-  t.is(p.position, 5)
+  t.is(p.text, '@lice hi')
+  t.is(p.position, 1)
   t.alike(p.display, [])
 })
 
 test('resync - replace before an item shifts it by the length difference', (t) => {
-  const p = new Parser({ text: 'Hey @alice', display: [mention(4, '@alice')] })
+  const p = makeParser({ text: 'Hey @alice', display: [mention(4, '@alice')] })
 
   p.resync('Yo @alice')
 
@@ -935,7 +934,7 @@ test('resync - replace before an item shifts it by the length difference', (t) =
 })
 
 test('resync - insert between two adjacent items', (t) => {
-  const p = new Parser({
+  const p = makeParser({
     text: '@alice@bob',
     display: [mention(0, '@alice'), mention(6, '@bob')]
   })
@@ -947,25 +946,28 @@ test('resync - insert between two adjacent items', (t) => {
 })
 
 test('resync - consecutive edits keep items in sync', (t) => {
-  const p = new Parser({ text: '@alice', display: [mention(0, '@alice')] })
+  const p = makeParser({
+    text: '@alice',
+    display: [mention(0, '@alice', 'member-id-a')]
+  })
 
   p.setPosition(0)
   p.resync('a @alice')
   t.is(p.position, 2)
-  t.alike(p.display, [mention(2, '@alice')])
+  t.alike(p.display, [mention(2, '@alice', 'member-id-a')])
 
   p.resync('ab @alice')
   t.is(p.position, 2)
-  t.alike(p.display, [mention(3, '@alice')])
+  t.alike(p.display, [mention(3, '@alice', 'member-id-a')])
 
   p.setPosition(9)
   p.resync('ab @alice!')
   t.is(p.position, 10)
-  t.alike(p.display, [mention(3, '@alice')])
+  t.alike(p.display, [mention(3, '@alice', 'member-id-a')])
 })
 
 test('resync - mixed item types all shift together', (t) => {
-  const p = new Parser({
+  const p = makeParser({
     text: '@alice https://x.io 😀',
     display: [
       mention(0, '@alice'),
@@ -1019,10 +1021,9 @@ test('resync insert mention in the middle', function (t) {
     content: 'smile'
   }
 
-  const p = new Parser({
+  const p = makeParser({
     text: ':smile:x',
-    display: [emojiDisplay],
-    onmention: (mention) => p.setMention(mention, '@bob', 'member-id')
+    display: [emojiDisplay]
   })
 
   p.resync(':smile: @bo x')
@@ -1036,16 +1037,13 @@ test('resync insert mention in the middle', function (t) {
       end: 12,
       length: 4,
       type: DISPLAY_TYPES.MENTION,
-      memberId: 'member-id'
+      memberId: 'member-id-b'
     }
   ])
 })
 
 test('resync dispatches words after an emoji that shrinks the text', function (t) {
-  const p = new Parser({
-    onemoji: (emoji) => p.setEmoji(emoji, ':smile:', '😄'),
-    onmention: (mention) => p.setMention(mention, '@bob', 'member-id')
-  })
+  const p = makeParser()
 
   p.resync(':smile: @bo x')
 
@@ -1063,15 +1061,13 @@ test('resync dispatches words after an emoji that shrinks the text', function (t
       start: 3,
       end: 7,
       length: 4,
-      memberId: 'member-id'
+      memberId: 'member-id-b'
     }
   ])
 })
 
 test('resync places an insert at the cursor inside a run of identical characters', function (t) {
-  const p = new Parser({
-    onmention: (mention) => p.setMention(mention, '@bob', 'member-id')
-  })
+  const p = makeParser()
 
   p.resync('aa @bo')
   t.is(p.text, 'aa @bob ')
@@ -1088,15 +1084,13 @@ test('resync places an insert at the cursor inside a run of identical characters
       start: 4,
       end: 8,
       length: 4,
-      memberId: 'member-id'
+      memberId: 'member-id-b'
     }
   ])
 })
 
 test('resync keeps the cursor on the new line after enter at the end of a line', function (t) {
-  const p = new Parser({
-    onmention: (mention) => p.setMention(mention, '@bob', 'member-id')
-  })
+  const p = makeParser()
 
   p.resync('a\n@bo')
   t.is(p.text, 'a\n@bob ')
@@ -1113,13 +1107,13 @@ test('resync keeps the cursor on the new line after enter at the end of a line',
       start: 3,
       end: 7,
       length: 4,
-      memberId: 'member-id'
+      memberId: 'member-id-b'
     }
   ])
 })
 
 test('resync keeps the cursor on the start of a selected range', function (t) {
-  const p = new Parser({
+  const p = makeParser({
     onmention: (mention) => p.setMention(mention, '@bob')
   })
 
@@ -1136,7 +1130,7 @@ test('resync keeps the cursor on the start of a selected range', function (t) {
 })
 
 test('move to position and backspace', function (t) {
-  const p = new Parser({ text: 'aaaa' })
+  const p = makeParser({ text: 'aaaa' })
   t.is(p.position, 4)
   t.alike(p.display, [])
 
@@ -1148,7 +1142,7 @@ test('move to position and backspace', function (t) {
 })
 
 test('move to position and type', function (t) {
-  const p = new Parser({ text: 'aaaa' })
+  const p = makeParser({ text: 'aaaa' })
   t.is(p.position, 4)
   t.alike(p.display, [])
 
@@ -1160,7 +1154,7 @@ test('move to position and type', function (t) {
 })
 
 test('move to position and paste', function (t) {
-  const p = new Parser({ text: 'aaaa' })
+  const p = makeParser({ text: 'aaaa' })
   t.is(p.position, 4)
   t.alike(p.display, [])
 
@@ -1172,7 +1166,7 @@ test('move to position and paste', function (t) {
 })
 
 test('select range and backspace', function (t) {
-  const p = new Parser({ text: 'aaaa' })
+  const p = makeParser({ text: 'aaaa' })
   t.is(p.position, 4)
   t.alike(p.display, [])
 
@@ -1184,7 +1178,7 @@ test('select range and backspace', function (t) {
 })
 
 test('select range and and type', function (t) {
-  const p = new Parser({ text: 'aaaa' })
+  const p = makeParser({ text: 'aaaa' })
   t.is(p.position, 4)
   t.alike(p.display, [])
 
@@ -1196,7 +1190,7 @@ test('select range and and type', function (t) {
 })
 
 test('move to position and paste shorter length', function (t) {
-  const p = new Parser({ text: 'aaaaa' })
+  const p = makeParser({ text: 'aaaaa' })
   t.is(p.position, 5)
   t.alike(p.display, [])
 
@@ -1208,7 +1202,7 @@ test('move to position and paste shorter length', function (t) {
 })
 
 test('move to position and paste same length', function (t) {
-  const p = new Parser({ text: 'aaaaa' })
+  const p = makeParser({ text: 'aaaaa' })
   t.is(p.position, 5)
   t.alike(p.display, [])
 
@@ -1220,7 +1214,7 @@ test('move to position and paste same length', function (t) {
 })
 
 test('move to position and paste greater length', function (t) {
-  const p = new Parser({ text: 'aaaaa' })
+  const p = makeParser({ text: 'aaaaa' })
   t.is(p.position, 5)
   t.alike(p.display, [])
 
@@ -1239,7 +1233,7 @@ test('backspace one of two identical emoji with a collapsed selection', (t) => {
     content: 'grinning',
     length: 2
   })
-  const p = new Parser({ text: '😀😀', display: [emoji(0), emoji(2)] })
+  const p = makeParser({ text: '😀😀', display: [emoji(0), emoji(2)] })
 
   p.selectRange(2, 2)
   p.resync('😀')
@@ -1249,14 +1243,14 @@ test('backspace one of two identical emoji with a collapsed selection', (t) => {
 })
 
 test('resolving a token elsewhere must not move the caret', (t) => {
-  const p = new Parser({ text: 'hi :smi' })
+  const p = makeParser({ text: 'hi :smi' })
   p.setPosition(0)
   p.resync('ahi :smi')
   t.is(p.position, 1)
 })
 
 test('resync dispatches the whole word when completing an emoji', (t) => {
-  const p = new Parser({
+  const p = makeParser({
     text: 'hi :smile',
     onemoji: (emoji) =>
       emoji === ':smile:' && p.setEmoji(emoji, ':smile:', '😄')
@@ -1278,7 +1272,7 @@ test('resync dispatches the whole word when completing an emoji', (t) => {
 
 test('resync dispatches the joined word after a backspace', (t) => {
   const cleared = []
-  const p = new Parser({ text: 'abc def', onclear: (w) => cleared.push(w) })
+  const p = makeParser({ text: 'abc def', onclear: (w) => cleared.push(w) })
 
   p.setPosition(4)
   p.resync('abcdef')
@@ -1289,7 +1283,7 @@ test('resync dispatches the joined word after a backspace', (t) => {
 
 test('resync re-dispatches a mention extended at its end', (t) => {
   const mentions = []
-  const p = new Parser({
+  const p = makeParser({
     text: '@bob',
     onmention: (w) => mentions.push(w)
   })
@@ -1301,7 +1295,7 @@ test('resync re-dispatches a mention extended at its end', (t) => {
 })
 
 test('resync re-dispatches a link extended at its end', (t) => {
-  const p = new Parser({ onlink: (w) => p.setLink(w, w) })
+  const p = makeParser()
 
   p.resync('https://a.co')
   p.resync('https://a.cox')
@@ -1320,7 +1314,7 @@ test('resync re-dispatches a link extended at its end', (t) => {
 
 test('resync re-dispatches a mention shortened by a deletion', (t) => {
   const mentions = []
-  const p = new Parser({
+  const p = makeParser({
     text: '@bobby',
     display: [mention(0, '@bobby')],
     onmention: (w) => mentions.push(w)
@@ -1335,7 +1329,7 @@ test('resync re-dispatches a mention shortened by a deletion', (t) => {
 
 test('resync detects a link revealed by a deletion', (t) => {
   const links = []
-  const p = new Parser({ text: 'xhttps://a.co', onlink: (w) => links.push(w) })
+  const p = makeParser({ text: 'xhttps://a.co', onlink: (w) => links.push(w) })
 
   p.setPosition(1)
   p.resync('https://a.co')
@@ -1345,7 +1339,7 @@ test('resync detects a link revealed by a deletion', (t) => {
 })
 
 test('resync updates the current word after a deletion', (t) => {
-  const p = new Parser({ text: 'xhttps://a.co' })
+  const p = makeParser({ text: 'xhttps://a.co' })
 
   p.setPosition(1)
   p.resync('https://a.co')
@@ -1359,7 +1353,7 @@ test('resync updates the current word after a deletion', (t) => {
 test('resync re-dispatches every word of an overlapped mention', (t) => {
   const mentions = []
   const cleared = []
-  const p = new Parser({
+  const p = makeParser({
     text: '@Alice Smith hi',
     display: [mention(0, '@Alice Smith')],
     onmention: (w) => mentions.push(w),
@@ -1377,7 +1371,7 @@ test('resync re-dispatches every word of an overlapped mention', (t) => {
 
 test('resync keeps the range in sync when a callback shrinks the text', (t) => {
   const cleared = []
-  const p = new Parser({
+  const p = makeParser({
     text: 'a b',
     onemoji: (w) => p.setEmoji(w, ':smile:', '😄'),
     onclear: (w) => cleared.push(w)
@@ -1394,7 +1388,7 @@ test('resync keeps the range in sync when a callback shrinks the text', (t) => {
 
 test('resync does not dispatch past the range when a callback grows the text', (t) => {
   const cleared = []
-  const p = new Parser({
+  const p = makeParser({
     text: 'a z',
     onmention: (w) => p.setMention(w, '@bobby'),
     onclear: (w) => cleared.push(w)
@@ -1409,7 +1403,7 @@ test('resync does not dispatch past the range when a callback grows the text', (
 
 test('resync dispatches the joined word after a forward delete', (t) => {
   const cleared = []
-  const p = new Parser({ text: 'abc def', onclear: (w) => cleared.push(w) })
+  const p = makeParser({ text: 'abc def', onclear: (w) => cleared.push(w) })
 
   p.setPosition(3)
   p.resync('abcdef')
@@ -1419,7 +1413,7 @@ test('resync dispatches the joined word after a forward delete', (t) => {
 })
 
 test('resync re-dispatches a word extending a mention display', (t) => {
-  const p = new Parser({
+  const p = makeParser({
     text: '@bob',
     display: [mention(0, '@bob', 'member-id')],
     onmention: (w) => p.setMention(w, '@bobx', 'member-id-x')
@@ -1433,7 +1427,7 @@ test('resync re-dispatches a word extending a mention display', (t) => {
 
 test('resync - typing at the start of a collapsed selection keeps the mention', (t) => {
   const mentions = []
-  const p = new Parser({
+  const p = makeParser({
     text: '@bob hi',
     display: [mention(0, '@bob')],
     onmention: (word) => mentions.push(word)
@@ -1449,7 +1443,7 @@ test('resync - typing at the start of a collapsed selection keeps the mention', 
 
 test('resync - deleting the tail of a mention re-dispatches what is left', (t) => {
   const mentions = []
-  const p = new Parser({
+  const p = makeParser({
     text: 'hey @John x',
     display: [mention(4, '@John')],
     onmention: (word) => mentions.push(word)
