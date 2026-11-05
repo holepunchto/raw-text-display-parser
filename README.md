@@ -8,7 +8,7 @@ npm install raw-text-display-parser
 
 ## Usage
 
-See example.html for integration
+See example-parser.js for integration
 
 ## License
 
