@@ -216,9 +216,7 @@ test('mention the name that contain space and default-emoji', (t) => {
 })
 
 test('mention at the start, before another mentioned', function (t) {
-  const p = makeParser({
-    onmention: (mention) => p.setMention(mention, '@alice', 'member-id-a')
-  })
+  const p = makeParser()
 
   p.resync('@a')
   t.is(p.text, '@alice ')
@@ -238,8 +236,7 @@ test('mention at the start, before another mentioned', function (t) {
 test('mention at the start, before another mentioned and text', function (t) {
   const p = makeParser({
     text: '7777@alice ',
-    display: [mentionDisplay(4, '@alice', 'member-id-a')],
-    onmention: (mention) => p.setMention(mention, '@alice', 'member-id-a')
+    display: [mentionDisplay(4, '@alice', 'member-id-a')]
   })
 
   p.resync('@a 7777@alice ')

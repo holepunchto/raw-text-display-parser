@@ -182,14 +182,10 @@ test('resync: repeated character keeps the cursor at the end', function (t) {
 })
 
 test('resync test remove mention', function (t) {
-  const firstMentionDisplay = mentionDisplay(0, '@bob', 'member-id-0')
-  const secondMentionDisplay = mentionDisplay(5, '@bob', 'member-id-0')
+  const firstMentionDisplay = mentionDisplay(0, '@bob', 'member-id-b')
+  const secondMentionDisplay = mentionDisplay(5, '@bob', 'member-id-b')
 
-  const p = makeParser({
-    onmention(mention) {
-      p.setMention(mention, '@bob', 'member-id-0')
-    }
-  })
+  const p = makeParser()
 
   p.resync('@b')
   t.is(p.text, '@bob ')
@@ -213,21 +209,17 @@ test('resync test remove mention', function (t) {
 })
 
 test('resync test modify mention', function (t) {
-  const p = makeParser({
-    onmention(mention) {
-      p.setMention(mention, '@bob', 'member-id-0')
-    }
-  })
+  const p = makeParser()
 
   p.resync('@b')
   t.is(p.text, '@bob ')
   t.is(p.position, 5)
-  t.alike(p.display, [mentionDisplay(0, '@bob', 'member-id-0')])
+  t.alike(p.display, [mentionDisplay(0, '@bob', 'member-id-b')])
 
   p.resync('x @bob ')
   t.is(p.text, 'x @bob ')
   t.is(p.position, 2)
-  t.alike(p.display, [mentionDisplay(2, '@bob', 'member-id-0')])
+  t.alike(p.display, [mentionDisplay(2, '@bob', 'member-id-b')])
 })
 
 test('resync test middle modification', function (t) {
@@ -290,13 +282,7 @@ test('resync deleting one emoji keep one emoji', function (t) {
 })
 
 test('resync: manual pick 2 emojis, then manual delete 1st one using backspace', function (t) {
-  const p = makeParser({
-    ondefaultemoji: (word) => {
-      if (word === '😀') p.setEmoji(word, 'grinning', word, true)
-      if (word === '🚀') p.setEmoji(word, 'rocket', word, true)
-      if (word === '😃') p.setEmoji(word, 'smiley', word, true)
-    }
-  })
+  const p = makeParser()
 
   p.resync('😀')
   t.is(p.text, '😀 ')
@@ -339,13 +325,7 @@ test('resync: manual pick 2 emojis, then manual delete 1st one using backspace',
 })
 
 test('resync: manual pick 2 emojis, then manual delete 1st one using resync', function (t) {
-  const p = makeParser({
-    ondefaultemoji: (word) => {
-      if (word === '😀') p.setEmoji(word, 'grinning', word, true)
-      if (word === '🚀') p.setEmoji(word, 'rocket', word, true)
-      if (word === '😃') p.setEmoji(word, 'smiley', word, true)
-    }
-  })
+  const p = makeParser()
 
   p.resync('😀')
   t.is(p.text, '😀 ')
@@ -880,20 +860,18 @@ test('resync keeps the cursor on the new line after enter at the end of a line',
 })
 
 test('resync keeps the cursor on the start of a selected range', function (t) {
-  const p = makeParser({
-    onmention: (mention) => p.setMention(mention, '@bob')
-  })
+  const p = makeParser()
 
   p.resync('a\n@bo')
   t.is(p.text, 'a\n@bob ')
   t.is(p.position, 7)
-  t.alike(p.display, [mentionDisplay(2, '@bob')])
+  t.alike(p.display, [mentionDisplay(2, '@bob', 'member-id-b')])
 
   p.selectRange(0, 2)
   p.resync('@bob ')
   t.is(p.text, '@bob ')
   t.is(p.position, 0)
-  t.alike(p.display, [mentionDisplay(0, '@bob')])
+  t.alike(p.display, [mentionDisplay(0, '@bob', 'member-id-b')])
 })
 
 test('move to position and backspace', function (t) {
@@ -1013,11 +991,7 @@ test('resolving a token elsewhere must not move the caret', (t) => {
 })
 
 test('resync dispatches the whole word when completing an emoji', (t) => {
-  const p = makeParser({
-    text: 'hi :smile',
-    onemoji: (emoji) =>
-      emoji === ':smile:' && p.setEmoji(emoji, ':smile:', '😄')
-  })
+  const p = makeParser({ text: 'hi :smile' })
 
   p.resync('hi :smile:')
   t.is(p.text, 'hi 😄')
@@ -1120,7 +1094,6 @@ test('resync keeps the range in sync when a callback shrinks the text', (t) => {
   const cleared = []
   const p = makeParser({
     text: 'a b',
-    onemoji: (w) => p.setEmoji(w, ':smile:', '😄'),
     onclear: (w) => cleared.push(w)
   })
 
@@ -1135,14 +1108,13 @@ test('resync does not dispatch past the range when a callback grows the text', (
   const cleared = []
   const p = makeParser({
     text: 'a z',
-    onmention: (w) => p.setMention(w, '@bobby'),
     onclear: (w) => cleared.push(w)
   })
 
   p.setPosition(1)
   p.resync('a @b c z')
-  t.is(p.text, 'a @bobby c z')
-  t.alike(p.display, [mentionDisplay(2, '@bobby')])
+  t.is(p.text, 'a @bob c z')
+  t.alike(p.display, [mentionDisplay(2, '@bob', 'member-id-b')])
   t.alike(cleared, ['a', 'c'])
 })
 

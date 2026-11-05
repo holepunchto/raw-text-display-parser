@@ -39,7 +39,8 @@ const makeParser = (options = {}) => {
       const emojis = {
         '😀': 'grinning',
         '🚀': 'rocket',
-        '😃': 'smiley'
+        '😃': 'smiley',
+        '😂': 'joy'
       }
       if (emojis[emoji]) return p.setEmoji(emoji, emojis[emoji], emoji, true)
     },

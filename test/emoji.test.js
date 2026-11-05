@@ -226,11 +226,9 @@ test('ondefaultemoji reuses an existing space after the emoji', (t) => {
 })
 
 test('emoji at the start, before another emoji-ed', function (t) {
-  const p = makeParser({
-    onemoji: (emoji) => p.setEmoji(emoji, ':keet_party:')
-  })
+  const p = makeParser()
 
-  p.resync(':ke')
+  p.resync(':kee')
   t.is(p.text, ':keet_party: ')
   t.is(p.position, 13)
   t.alike(p.display, [customEmojiDisplay(0, 'keet_party')])
@@ -245,12 +243,7 @@ test('emoji at the start, before another emoji-ed', function (t) {
 })
 
 test('ondefaultemoji is called per emoji when emojis are typed without spaces', (t) => {
-  const codes = { '😂': 'joy', '🚀': 'rocket' }
-  const p = makeParser({
-    ondefaultemoji: (word) => {
-      if (codes[word]) p.setEmoji(word, codes[word], word, true)
-    }
-  })
+  const p = makeParser()
 
   p.resync('😂😂🚀')
 
@@ -266,11 +259,7 @@ test('ondefaultemoji is called per emoji when emojis are typed without spaces', 
 })
 
 test('ondefaultemoji marks an emoji typed before the trailing space of the previous one lands', (t) => {
-  const p = makeParser({
-    ondefaultemoji: (word) => {
-      if (word === '😂') p.setEmoji(word, 'joy', word, true)
-    }
-  })
+  const p = makeParser()
 
   p.resync('😂')
   p.resync('😂😂')
@@ -307,12 +296,7 @@ test('ondefaultemoji keeps skin tone and joined emojis whole when typed together
 })
 
 test('ondefaultemoji does not add a space when an emoji is inserted between two others', (t) => {
-  const codes = { '😂': 'joy', '🚀': 'rocket' }
-  const p = makeParser({
-    ondefaultemoji: (word) => {
-      if (codes[word]) p.setEmoji(word, codes[word], word, true)
-    }
-  })
+  const p = makeParser()
 
   p.resync('🚀🚀')
   p.setPosition(2)
@@ -338,12 +322,7 @@ test('ondefaultemoji is not called again for marked emojis on later edits', (t) 
 })
 
 test('ondefaultemoji is called per emoji when emojis are attached to text', (t) => {
-  const codes = { '😂': 'joy', '🚀': 'rocket' }
-  const p = makeParser({
-    ondefaultemoji: (word) => {
-      if (codes[word]) p.setEmoji(word, codes[word], word, true)
-    }
-  })
+  const p = makeParser()
 
   p.resync('😂hi😂🚀')
 
@@ -372,11 +351,7 @@ test('ondefaultemoji leaves text-default symbols attached to text alone', (t) =>
 })
 
 test('ondefaultemoji leaves an emoji in text style attached to text alone', (t) => {
-  const p = makeParser({
-    ondefaultemoji: (word) => {
-      if (word === '😂') p.setEmoji(word, 'joy', word, true)
-    }
-  })
+  const p = makeParser()
 
   p.resync('I😂\u{FE0E}')
 
@@ -385,11 +360,7 @@ test('ondefaultemoji leaves an emoji in text style attached to text alone', (t) 
 })
 
 test('ondefaultemoji does not split a word when an emoji is typed inside it', (t) => {
-  const p = makeParser({
-    ondefaultemoji: (word) => {
-      if (word === '😂') p.setEmoji(word, 'joy', word, true)
-    }
-  })
+  const p = makeParser()
 
   p.resync('ab')
   p.setPosition(1)
@@ -403,9 +374,7 @@ test('ondefaultemoji does not split a word when an emoji is typed inside it', (t
 })
 
 test('default emoji in the middle of a word is placed on the emoji', (t) => {
-  const p = makeParser({
-    ondefaultemoji: (w) => p.setEmoji(w, 'grinning', '😀', true)
-  })
+  const p = makeParser()
   p.resync('hi😀')
   const d = p.display[0]
   t.is(p.text.slice(d.start, d.end), '😀', 'display covers "hi" instead')
