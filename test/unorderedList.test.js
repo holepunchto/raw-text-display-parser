@@ -1,6 +1,6 @@
 const test = require('brittle')
 
-const Parser = require('..')
+const { makeParser } = require('./helpers')
 const { DISPLAY_TYPES } = require('../utils')
 const { HTTP_LINK, MENTION, EMOJI, UNORDERED_LIST_ITEM } = DISPLAY_TYPES
 
@@ -20,20 +20,16 @@ const linkDisplay = (start, content) => ({
   type: HTTP_LINK
 })
 
-const makeParser = ({ text = '', display = [] }) => {
-  const p = new Parser({
+const makeListParser = ({ text = '', display = [] }) => {
+  const p = makeParser({
     text,
-    display: display.map(unorderedListDisplay),
-    onlist: (start, end, type) => p.setList(start, end, type),
-    onlink: (link) => p.setLink(link, link),
-    onmention: (mention) => p.setMention(mention, '@bob', 'member-id'),
-    onemoji: (emoji) => p.setEmoji(emoji, ':smile:', '😄')
+    display: display.map(unorderedListDisplay)
   })
   return p
 }
 
 test('list general case', (t) => {
-  const p = makeParser({})
+  const p = makeListParser({})
 
   p.resync('- ')
   t.is(p.text, '● ')
@@ -59,7 +55,7 @@ test('list general case', (t) => {
 })
 
 test('list general case newline at the end', (t) => {
-  const p = makeParser({})
+  const p = makeListParser({})
 
   p.resync('- ')
   t.is(p.text, '● ')
@@ -85,7 +81,7 @@ test('list general case newline at the end', (t) => {
 })
 
 test('a line that only starts with a bullet but has no display is not an item', (t) => {
-  const p = makeParser({ text: '● a' })
+  const p = makeListParser({ text: '● a' })
 
   p.resync('● a\n')
   t.is(p.text, '● a\n')
@@ -94,7 +90,7 @@ test('a line that only starts with a bullet but has no display is not an item', 
 })
 
 test('enter before the start of the first item adds a plain line above it', (t) => {
-  const p = makeParser({ text: '● a', display: [0] })
+  const p = makeListParser({ text: '● a', display: [0] })
 
   p.setPosition(0)
   p.resync('\n● a')
@@ -104,7 +100,7 @@ test('enter before the start of the first item adds a plain line above it', (t) 
 })
 
 test('enter at the start of the first item adds a new line above it', (t) => {
-  const p = makeParser({ text: '● a', display: [0] })
+  const p = makeListParser({ text: '● a', display: [0] })
 
   p.setPosition(2)
   p.resync('● \na')
@@ -114,7 +110,7 @@ test('enter at the start of the first item adds a new line above it', (t) => {
 })
 
 test('list mark only converts at the start of a line', (t) => {
-  const p = makeParser({})
+  const p = makeListParser({})
 
   p.resync('a - ')
   t.is(p.text, 'a - ')
@@ -138,7 +134,7 @@ test('list mark only converts at the start of a line', (t) => {
 })
 
 test('list items survive edits on other lines and drop when their mark is broken', (t) => {
-  const p = makeParser({})
+  const p = makeListParser({})
 
   p.resync('- ')
   t.is(p.text, '● ')
@@ -157,7 +153,7 @@ test('list items survive edits on other lines and drop when their mark is broken
   t.is(p.position, 8)
   t.alike(p.display, [
     unorderedListDisplay(0),
-    { start: 4, end: 8, length: 4, type: MENTION, memberId: 'member-id' },
+    { start: 4, end: 8, length: 4, type: MENTION, memberId: 'member-id-b' },
     unorderedListDisplay(9)
   ])
 
@@ -168,7 +164,7 @@ test('list items survive edits on other lines and drop when their mark is broken
   t.is(p.position, 10)
   t.alike(p.display, [
     unorderedListDisplay(0),
-    { start: 4, end: 8, length: 4, type: MENTION, memberId: 'member-id' }
+    { start: 4, end: 8, length: 4, type: MENTION, memberId: 'member-id-b' }
   ])
 
   // a mark typed mid-line is plain text
@@ -177,12 +173,12 @@ test('list items survive edits on other lines and drop when their mark is broken
   t.is(p.position, 11)
   t.alike(p.display, [
     unorderedListDisplay(0),
-    { start: 4, end: 8, length: 4, type: MENTION, memberId: 'member-id' }
+    { start: 4, end: 8, length: 4, type: MENTION, memberId: 'member-id-b' }
   ])
 })
 
 test('list continues on a new line', (t) => {
-  const p = makeParser({})
+  const p = makeListParser({})
 
   p.resync('x')
   p.resync('x\n')
@@ -212,7 +208,7 @@ test('list continues on a new line', (t) => {
 })
 
 test('list continues on a new line in the middle', (t) => {
-  const p = makeParser({})
+  const p = makeListParser({})
 
   p.resync('- ')
   t.is(p.text, '● ')
@@ -237,7 +233,7 @@ test('list continues on a new line in the middle', (t) => {
 })
 
 test('list continues on a new line at the end', (t) => {
-  const p = makeParser({})
+  const p = makeListParser({})
 
   p.resync('- ')
   t.is(p.text, '● ')
@@ -262,7 +258,7 @@ test('list continues on a new line at the end', (t) => {
 })
 
 test('list end after 2 consecutive new lines', (t) => {
-  const p = makeParser({ text: '● a', display: [0] })
+  const p = makeListParser({ text: '● a', display: [0] })
 
   p.resync('● a\n- ')
   t.is(p.text, '● a\n● ')
@@ -276,7 +272,7 @@ test('list end after 2 consecutive new lines', (t) => {
 })
 
 test('list end in the middle keeps the other items', (t) => {
-  const p = makeParser({ text: '● a\n● \n● b', display: [0, 4, 7] })
+  const p = makeListParser({ text: '● a\n● \n● b', display: [0, 4, 7] })
 
   p.setPosition(6)
   p.resync('● a\n● \n\n● b')
@@ -286,7 +282,7 @@ test('list end in the middle keeps the other items', (t) => {
 })
 
 test('list end with empty item and backspace', (t) => {
-  const p = makeParser({ text: '● a\n● \n● b', display: [0, 4, 7] })
+  const p = makeListParser({ text: '● a\n● \n● b', display: [0, 4, 7] })
 
   p.setPosition(6)
   p.resync('● a\n●\n● b')
@@ -296,7 +292,7 @@ test('list end with empty item and backspace', (t) => {
 })
 
 test('backspace on the only item replaces the text', (t) => {
-  const p = makeParser({ text: '● ', display: [0] })
+  const p = makeListParser({ text: '● ', display: [0] })
 
   p.setPosition(2)
   p.resync('●')
@@ -306,14 +302,14 @@ test('backspace on the only item replaces the text', (t) => {
 })
 
 test('list lifecycle with a mention and a link inside items', (t) => {
-  const p = makeParser({})
+  const p = makeListParser({})
 
   p.resync('- ')
   p.resync('● @bo')
   t.is(p.text, '● @bob ')
   t.alike(p.display, [
     unorderedListDisplay(0),
-    { type: MENTION, start: 2, end: 6, length: 4, memberId: 'member-id' }
+    { type: MENTION, start: 2, end: 6, length: 4, memberId: 'member-id-b' }
   ])
 
   p.resync('● @bob \n')
@@ -323,7 +319,7 @@ test('list lifecycle with a mention and a link inside items', (t) => {
   p.resync('● @bob \n● http://a.io')
   t.alike(p.display, [
     unorderedListDisplay(0),
-    { type: MENTION, start: 2, end: 6, length: 4, memberId: 'member-id' },
+    { type: MENTION, start: 2, end: 6, length: 4, memberId: 'member-id-b' },
     unorderedListDisplay(8),
     { type: HTTP_LINK, start: 10, end: 21, content: 'http://a.io', length: 11 }
   ])
@@ -341,14 +337,14 @@ test('list lifecycle with a mention and a link inside items', (t) => {
   t.is(p.position, 23)
   t.alike(p.display, [
     unorderedListDisplay(0),
-    { type: MENTION, start: 2, end: 6, length: 4, memberId: 'member-id' },
+    { type: MENTION, start: 2, end: 6, length: 4, memberId: 'member-id-b' },
     unorderedListDisplay(8),
     { type: HTTP_LINK, start: 10, end: 21, content: 'http://a.io', length: 11 }
   ])
 })
 
 test('editing in the middle of a list with an emoji item', (t) => {
-  const p = makeParser({})
+  const p = makeListParser({})
 
   p.resync('- ')
   p.resync('● :smile:')
@@ -399,7 +395,7 @@ test('editing in the middle of a list with an emoji item', (t) => {
 })
 
 test('a mark arriving in one batch before existing text converts', (t) => {
-  const p = makeParser({ text: 'x' })
+  const p = makeListParser({ text: 'x' })
 
   p.setPosition(0)
   p.resync('- x')
@@ -409,7 +405,7 @@ test('a mark arriving in one batch before existing text converts', (t) => {
 })
 
 test('a mark typed mid-line stays text', (t) => {
-  const p = makeParser({ text: 'x' })
+  const p = makeListParser({ text: 'x' })
 
   p.resync('x- y')
   t.is(p.text, 'x- y')
@@ -417,7 +413,7 @@ test('a mark typed mid-line stays text', (t) => {
 })
 
 test('backspace at the start of an item body removes its marker', (t) => {
-  const p = makeParser({ text: '● a', display: [0] })
+  const p = makeListParser({ text: '● a', display: [0] })
 
   p.setPosition(2)
   p.resync('●a')
@@ -427,7 +423,7 @@ test('backspace at the start of an item body removes its marker', (t) => {
 })
 
 test('backspace joining two items drops the second marker', (t) => {
-  const p = makeParser({ text: '● a\n● b', display: [0, 4] })
+  const p = makeListParser({ text: '● a\n● b', display: [0, 4] })
 
   p.setPosition(4)
   p.resync('● a● b')
@@ -437,7 +433,7 @@ test('backspace joining two items drops the second marker', (t) => {
 })
 
 test('forward delete joining two items drops the second marker', (t) => {
-  const p = makeParser({ text: '● a\n● b', display: [0, 4] })
+  const p = makeListParser({ text: '● a\n● b', display: [0, 4] })
 
   p.selectRange(3, 4)
   p.resync('● a● b')
@@ -447,7 +443,7 @@ test('forward delete joining two items drops the second marker', (t) => {
 })
 
 test('joining a plain line and an item drops the marker', (t) => {
-  const p = makeParser({ text: 'x\n● a', display: [2] })
+  const p = makeListParser({ text: 'x\n● a', display: [2] })
 
   p.setPosition(2)
   p.resync('x● a')
@@ -457,7 +453,7 @@ test('joining a plain line and an item drops the marker', (t) => {
 })
 
 test('typing before the bullet drops the marker', (t) => {
-  const p = makeParser({ text: '● a', display: [0] })
+  const p = makeListParser({ text: '● a', display: [0] })
 
   p.setPosition(0)
   p.resync('x● a')
@@ -467,7 +463,7 @@ test('typing before the bullet drops the marker', (t) => {
 })
 
 test('backspace in the middle of the bullet drops the marker', (t) => {
-  const p = makeParser({ text: '● a', display: [0] })
+  const p = makeListParser({ text: '● a', display: [0] })
 
   p.setPosition(2)
   p.resync('●a')
@@ -477,7 +473,7 @@ test('backspace in the middle of the bullet drops the marker', (t) => {
 })
 
 test('several stray markers, dropped middle, others and cursor kept', (t) => {
-  const p = makeParser({ text: '● a\n● b\n● c', display: [0, 4, 8] })
+  const p = makeListParser({ text: '● a\n● b\n● c', display: [0, 4, 8] })
 
   p.setPosition(6)
   p.resync('● a\n●b\n● c')
@@ -487,7 +483,7 @@ test('several stray markers, dropped middle, others and cursor kept', (t) => {
 })
 
 test('enter on a whitespace-only item continues the list', (t) => {
-  const p = makeParser({})
+  const p = makeListParser({})
 
   p.resync('- ')
   t.is(p.text, '● ')
@@ -506,7 +502,7 @@ test('enter on a whitespace-only item continues the list', (t) => {
 })
 
 test('enter on a whitespace-only item in the middle keeps the all items', (t) => {
-  const p = makeParser({ text: '● a\n●  \n● b', display: [0, 4, 8] })
+  const p = makeListParser({ text: '● a\n●  \n● b', display: [0, 4, 8] })
 
   p.setPosition(7)
   p.resync('● a\n●  \n\n● b')
@@ -521,7 +517,7 @@ test('enter on a whitespace-only item in the middle keeps the all items', (t) =>
 })
 
 test('enter replacing a selection inside an item continues the list', (t) => {
-  const p = makeParser({})
+  const p = makeListParser({})
 
   p.resync('- ')
   p.resync('● ab')
@@ -539,7 +535,7 @@ test('enter replacing a selection inside an item continues the list', (t) => {
 })
 
 test('enter at the start of an item body splits it into an empty item and the item', (t) => {
-  const p = makeParser({ text: '● a', display: [0] })
+  const p = makeListParser({ text: '● a', display: [0] })
 
   p.setPosition(2)
   p.resync('● \na')
@@ -549,7 +545,7 @@ test('enter at the start of an item body splits it into an empty item and the it
 })
 
 test('typing in the middle of the bullet drops the marker', (t) => {
-  const p = makeParser({ text: '● a', display: [0] })
+  const p = makeListParser({ text: '● a', display: [0] })
 
   p.setPosition(1)
   p.resync('●x a')
@@ -559,7 +555,7 @@ test('typing in the middle of the bullet drops the marker', (t) => {
 })
 
 test('backspace on an empty item, just replace remark with original char', (t) => {
-  const p = makeParser({ text: '● ', display: [0] })
+  const p = makeListParser({ text: '● ', display: [0] })
 
   p.setPosition(2)
   p.resync('●')
@@ -569,7 +565,7 @@ test('backspace on an empty item, just replace remark with original char', (t) =
 })
 
 test('backspace joining two items keeps the second mark as a dash', (t) => {
-  const p = makeParser({ text: '● a\n● b', display: [0, 4] })
+  const p = makeListParser({ text: '● a\n● b', display: [0, 4] })
 
   p.setPosition(4)
   p.resync('● a● b')
@@ -579,7 +575,7 @@ test('backspace joining two items keeps the second mark as a dash', (t) => {
 })
 
 test('a dash left by backspace becomes an item again when the space is retyped', (t) => {
-  const p = makeParser({ text: '● a', display: [0] })
+  const p = makeListParser({ text: '● a', display: [0] })
 
   p.setPosition(2)
   p.resync('●a')
@@ -594,7 +590,7 @@ test('a dash left by backspace becomes an item again when the space is retyped',
 })
 
 test('typing inside the marker turns it into a dash', (t) => {
-  const p = makeParser({ text: '● a', display: [0] })
+  const p = makeListParser({ text: '● a', display: [0] })
 
   p.setPosition(1)
   p.resync('●x a')
@@ -604,7 +600,7 @@ test('typing inside the marker turns it into a dash', (t) => {
 })
 
 test('joining a plain line into an item keeps the item below intact', (t) => {
-  const p = makeParser({ text: 'x\n● a\n● b', display: [2, 6] })
+  const p = makeListParser({ text: 'x\n● a\n● b', display: [2, 6] })
 
   p.setPosition(2)
   p.resync('x● a\n● b')
@@ -614,7 +610,7 @@ test('joining a plain line into an item keeps the item below intact', (t) => {
 })
 
 test('backspace on an empty item ends the list: drop its marker', (t) => {
-  const p = makeParser({ text: 'x\n● a\n● b\n● c', display: [2, 6, 10] })
+  const p = makeListParser({ text: 'x\n● a\n● b\n● c', display: [2, 6, 10] })
 
   p.setPosition(9)
   p.resync('x\n● a\n● \n● c')
@@ -627,7 +623,7 @@ test('backspace on an empty item ends the list: drop its marker', (t) => {
 })
 
 test('deleting over a selection that runs from inside one marker into the next item', (t) => {
-  const p = makeParser({ text: '● a\n● b', display: [0, 4] })
+  const p = makeListParser({ text: '● a\n● b', display: [0, 4] })
 
   // select " a\n● " (from after the first bullet to after the second) and type a space
   p.selectRange(1, 6)
@@ -638,7 +634,7 @@ test('deleting over a selection that runs from inside one marker into the next i
 })
 
 test('typing over a selection that runs from inside one marker into the next item', (t) => {
-  const p = makeParser({ text: '● a\n● b', display: [0, 4] })
+  const p = makeListParser({ text: '● a\n● b', display: [0, 4] })
 
   // select " a\n● " (from after the first bullet to after the second) and type a space
   p.selectRange(1, 6)
@@ -649,7 +645,7 @@ test('typing over a selection that runs from inside one marker into the next ite
 })
 
 test('paste the whole unordered-list', (t) => {
-  const p = makeParser({})
+  const p = makeListParser({})
 
   p.resync('- line 1\n- line 2\n- line 3')
   t.is(p.text, '● line 1\n● line 2\n● line 3')
@@ -662,7 +658,7 @@ test('paste the whole unordered-list', (t) => {
 })
 
 test('paste the whole unordered-list after existing text', (t) => {
-  const p = makeParser({ text: 'intro' })
+  const p = makeListParser({ text: 'intro' })
 
   p.resync('intro\n- line 1\n\n- line 2\n')
   t.is(p.text, 'intro\n● line 1\n\n● line 2\n')
@@ -671,7 +667,7 @@ test('paste the whole unordered-list after existing text', (t) => {
 })
 
 test('paste the whole unordered-list after existing text with - ', (t) => {
-  const p = makeParser({ text: '- intro' })
+  const p = makeListParser({ text: '- intro' })
 
   p.resync('- intro\n- line 1\n\n- line 2\n')
   t.is(p.text, '- intro\n● line 1\n\n● line 2\n')
@@ -680,7 +676,7 @@ test('paste the whole unordered-list after existing text with - ', (t) => {
 })
 
 test('paste the whole unordered-list into the middle of an existing list', (t) => {
-  const p = makeParser({ text: '● a\n● d', display: [0, 4] })
+  const p = makeListParser({ text: '● a\n● d', display: [0, 4] })
 
   // cursor at the end of the first item, paste two more items
   p.setPosition(3)
@@ -696,7 +692,7 @@ test('paste the whole unordered-list into the middle of an existing list', (t) =
 })
 
 test('paste the whole unordered-list onto an empty item', (t) => {
-  const p = makeParser({ text: '● ', display: [0] })
+  const p = makeListParser({ text: '● ', display: [0] })
 
   p.setPosition(2)
   p.resync('● - a\n- b')
@@ -706,7 +702,7 @@ test('paste the whole unordered-list onto an empty item', (t) => {
 })
 
 test('paste a list with a mention, an emoji and a link over a selection, then keep typing', (t) => {
-  const p = makeParser({
+  const p = makeListParser({
     text: 'todo:\nold'
   })
 
@@ -716,7 +712,7 @@ test('paste a list with a mention, an emoji and a link over a selection, then ke
   t.is(p.position, 37)
   t.alike(p.display, [
     unorderedListDisplay(6),
-    { type: MENTION, start: 8, end: 12, length: 4, memberId: 'member-id' },
+    { type: MENTION, start: 8, end: 12, length: 4, memberId: 'member-id-b' },
     unorderedListDisplay(13),
     { type: EMOJI, start: 15, end: 17, content: 'smile', length: 2 },
     { type: HTTP_LINK, start: 18, end: 29, content: 'http://a.io', length: 11 },
@@ -734,7 +730,7 @@ test('paste a list with a mention, an emoji and a link over a selection, then ke
 })
 
 test('editing a middle line leaves an untouched mark line above it alone', (t) => {
-  const p = makeParser({ text: '- a\nx\ny' })
+  const p = makeListParser({ text: '- a\nx\ny' })
 
   p.setPosition(5)
   p.resync('- a\nxz\ny')
@@ -743,7 +739,7 @@ test('editing a middle line leaves an untouched mark line above it alone', (t) =
 })
 
 test('editing the last line leaves an untouched mark line above it alone', (t) => {
-  const p = makeParser({ text: '- a\nx\ny' })
+  const p = makeListParser({ text: '- a\nx\ny' })
 
   p.setPosition(7)
   p.resync('- a\nx\nyz')
@@ -752,7 +748,7 @@ test('editing the last line leaves an untouched mark line above it alone', (t) =
 })
 
 test('an edit on the empty last line leaves an untouched mark line above it alone', (t) => {
-  const p = makeParser({ text: '- a\nx' })
+  const p = makeListParser({ text: '- a\nx' })
 
   p.setPosition(5)
   p.resync('- a\n')
@@ -762,7 +758,7 @@ test('an edit on the empty last line leaves an untouched mark line above it alon
 })
 
 test('paste a list over a selection that is shorter than the paste', (t) => {
-  const p = makeParser({ text: 'abc' })
+  const p = makeListParser({ text: 'abc' })
 
   p.selectRange(0, 3)
   p.resync('- a\n- b')
@@ -772,7 +768,7 @@ test('paste a list over a selection that is shorter than the paste', (t) => {
 })
 
 test('paste a list over a selection that is longer than the paste', (t) => {
-  const p = makeParser({ text: 'hello world' })
+  const p = makeListParser({ text: 'hello world' })
 
   p.selectRange(0, 11)
   p.resync('- a\n- b')
@@ -782,7 +778,7 @@ test('paste a list over a selection that is longer than the paste', (t) => {
 })
 
 test('paste a list whose first item shrinks while it is converted', (t) => {
-  const p = makeParser({})
+  const p = makeListParser({})
 
   p.resync('- :smile:\n- x')
   t.is(p.text, '● 😄\n● x')
@@ -795,7 +791,7 @@ test('paste a list whose first item shrinks while it is converted', (t) => {
 })
 
 test('an unconverted mark line below the cursor does not hang without a list handler', (t) => {
-  const p = makeParser({ text: 'x\n- b' })
+  const p = makeListParser({ text: 'x\n- b' })
 
   p.setPosition(1)
   p.resync('xy\n- b')
@@ -804,7 +800,7 @@ test('an unconverted mark line below the cursor does not hang without a list han
 })
 
 test('deleting the whole first list line keeps the next item intact', (t) => {
-  const p = makeParser({ text: '● a\n● b', display: [0, 4] })
+  const p = makeListParser({ text: '● a\n● b', display: [0, 4] })
 
   p.selectRange(0, 4)
   p.resync('● b')
@@ -813,7 +809,7 @@ test('deleting the whole first list line keeps the next item intact', (t) => {
 })
 
 test('one edit touching two items leaves no orphan bullet', (t) => {
-  const p = makeParser({ text: '● a\n● b', display: [0, 4] })
+  const p = makeListParser({ text: '● a\n● b', display: [0, 4] })
 
   p.selectRange(1, 6)
   p.resync('● x\n●b')
@@ -824,7 +820,7 @@ test('one edit touching two items leaves no orphan bullet', (t) => {
 })
 
 test('paste with a link right after a mark keeps converting the lines below', (t) => {
-  const p = makeParser({})
+  const p = makeListParser({})
 
   p.resync('- https://keet.io\n- x')
   t.is(p.text, '● https://keet.io\n● x')
@@ -837,7 +833,7 @@ test('paste with a link right after a mark keeps converting the lines below', (t
 })
 
 test('paste an unordered list whose last item is empty', (t) => {
-  const p = makeParser({})
+  const p = makeListParser({})
 
   p.resync('- a\n- ')
   t.is(p.text, '● a\n● ')
