@@ -1,10 +1,10 @@
 const test = require('brittle')
 
-const Parser = require('..')
+const { makeParser } = require('./helpers')
 const { DISPLAY_TYPES } = require('../utils')
 
 test('setPearLink creates pear-link display entry', (t) => {
-  const p = new Parser()
+  const p = makeParser()
   const pearlink = 'pear://example'
   p.appendText(pearlink)
   const success = p.setPearLink(pearlink)
