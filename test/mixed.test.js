@@ -1,28 +1,12 @@
 const test = require('brittle')
-const Parser = require('..')
+const { makeParser } = require('./helpers')
 const { DISPLAY_TYPES } = require('../utils')
 
 const { HTTP_LINK, MENTION, EMOJI } = DISPLAY_TYPES
 
 const keetLink = 'https://keet.io'
 
-const p = new Parser({
-  onmention: (mention) => {
-    if (mention.startsWith('@a')) p.setMention(mention, '@alice', 'member-id-a')
-    if (mention.startsWith('@b')) p.setMention(mention, '@bob', 'member-id-b')
-    if (mention.startsWith('@d')) p.setMention(mention, '@david', 'member-id-d')
-  },
-  onemoji: (emoji) => {
-    if (emoji.startsWith(':smi')) p.setEmoji(emoji, ':smile:', '😄')
-    if (emoji.startsWith(':keet')) p.setEmoji(':keet', ':keet_party:')
-  },
-  ondefaultemoji: (emoji) => {
-    if (emoji === '😀') p.setEmoji(emoji, 'grinning', emoji, true)
-    if (emoji === '🚀') p.setEmoji(emoji, 'rocket', emoji, true)
-    if (emoji === '😃') p.setEmoji(emoji, 'smiley', emoji, true)
-  },
-  onlink: (link) => p.setLink(link, link)
-})
+const p = makeParser()
 
 const assert = (_t, _text, _display, _position) => {
   _t.is(p.text, _text)
@@ -126,19 +110,19 @@ test('mixed type: insert in the middle emoji remove it', (t) => {
     12
   )
 
-  p.resync(':keetx_party: 😄 😀 ')
+  p.resync(':kexet_party: 😄 😀 ')
   assert(
     t,
-    ':keetx_party: 😄 😀 ',
+    ':kexet_party: 😄 😀 ',
     [display(14, 'smile', EMOJI), display(17, 'grinning', EMOJI)],
-    6
+    4
   )
 
-  p.resync(':keetx_party: x 😀 ')
-  assert(t, ':keetx_party: x 😀 ', [display(16, 'grinning', EMOJI)], 15)
+  p.resync(':kexet_party: x 😀 ')
+  assert(t, ':kexet_party: x 😀 ', [display(16, 'grinning', EMOJI)], 15)
 
-  p.resync(':keetx_party: x x ')
-  assert(t, ':keetx_party: x x ', [], 17)
+  p.resync(':kexet_party: x x ')
+  assert(t, ':kexet_party: x x ', [], 17)
 })
 
 test('mixed type: type, then edit in the middle, at the start, at the end', (t) => {
