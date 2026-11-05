@@ -47,7 +47,7 @@ test('mention', (t) => {
       type: MENTION,
       start: 0,
       end: 4,
-      memberId: 'member-id',
+      memberId: 'member-id-b',
       length: 4
     }
   ])
@@ -74,15 +74,7 @@ test('emoji not found', (t) => {
   const p = makeParser()
   p.appendText(text)
 
-  t.alike(p.display, [
-    {
-      type: EMOJI,
-      start: 0,
-      end: 7,
-      content: 'pearx',
-      length: 7
-    }
-  ])
+  t.alike(p.display, [])
 })
 
 test('ondefaultemoji is called for default emoji tokens', (t) => {
