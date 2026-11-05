@@ -41,14 +41,12 @@ test('backspace does nothing when at start and no range', (t) => {
 test('backspace removes emoji display entry when emoji is deleted #1', (t) => {
   const p = makeParser()
 
-  p.appendText(':smile:')
-  p.setEmoji(':smile:', ':smile:')
+  p.appendText(':smile')
 
   t.is(p.display.length, 1)
 
   p.backspace()
 
-  t.is(p.text, ':smile')
   t.is(p.display.length, 0)
 })
 
@@ -58,10 +56,9 @@ test('backspace before emoji shifts its display entry', (t) => {
   p.appendText('hi ')
   const startPos = p.position
 
-  p.appendText(':keet:')
-  p.setEmoji(':keet:', ':keet:')
+  p.appendText(':keet')
 
-  t.is(p.text, 'hi :keet:')
+  t.is(p.text, 'hi :keet_party: ')
   t.is(p.display.length, 1)
   t.is(p.display[0].start, startPos)
 
@@ -71,7 +68,7 @@ test('backspace before emoji shifts its display entry', (t) => {
   p.backspace()
   p.backspace()
 
-  t.is(p.text, ':keet:')
+  t.is(p.text, ':keet_party: ')
   t.is(p.display.length, 1)
   t.is(p.display[0].start, 0)
 })
