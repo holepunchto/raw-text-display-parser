@@ -1,7 +1,6 @@
 const test = require('brittle')
 
-const { makeParser } = require('./helpers')
-const { DISPLAY_TYPES } = require('../utils')
+const { makeParser, mentionDisplay } = require('./helpers')
 
 test('apply two mentions', function (t) {
   const p = makeParser()
@@ -21,20 +20,8 @@ test('apply two mentions', function (t) {
   t.is(p.text.slice(p.display[1].start, p.display[1].end), user2Name)
 
   t.alike(p.display, [
-    {
-      type: DISPLAY_TYPES.MENTION,
-      start: 3,
-      end: 14,
-      length: 11,
-      memberId: '001'
-    },
-    {
-      type: DISPLAY_TYPES.MENTION,
-      start: 19,
-      end: 30,
-      length: 11,
-      memberId: '002'
-    }
+    mentionDisplay(3, user1Name, '001'),
+    mentionDisplay(19, user2Name, '002')
   ])
 })
 
@@ -54,20 +41,8 @@ test('apply two mentions, then remove 1st one, then reapply it', function (t) {
   t.is(p.text.slice(p.display[1].start, p.display[1].end), '@user2 nameee end')
 
   t.alike(p.display, [
-    {
-      type: DISPLAY_TYPES.MENTION,
-      start: 3,
-      end: 18,
-      length: 15,
-      memberId: '001'
-    },
-    {
-      type: DISPLAY_TYPES.MENTION,
-      start: 23,
-      end: 40,
-      length: 17,
-      memberId: '002'
-    }
+    mentionDisplay(3, '@user1 name end', '001'),
+    mentionDisplay(23, '@user2 nameee end', '002')
   ])
 
   // move back and delete 2 characters to remove 1st mention
@@ -77,15 +52,7 @@ test('apply two mentions, then remove 1st one, then reapply it', function (t) {
 
   t.is(p.text, '00 @ur1 name end 111 @user2 nameee end ')
   t.is(p.text.slice(p.display[0].start, p.display[0].end), '@user2 nameee end')
-  t.alike(p.display, [
-    {
-      type: DISPLAY_TYPES.MENTION,
-      start: 21,
-      end: 38,
-      length: 17,
-      memberId: '002'
-    }
-  ])
+  t.alike(p.display, [mentionDisplay(21, '@user2 nameee end', '002')])
 
   // Reapply 1st mention
   p.setPosition(7)
@@ -98,20 +65,8 @@ test('apply two mentions, then remove 1st one, then reapply it', function (t) {
   t.is(p.text.slice(p.display[1].start, p.display[1].end), '@user2 nameee end')
 
   t.alike(p.display, [
-    {
-      type: DISPLAY_TYPES.MENTION,
-      start: 3,
-      end: 18,
-      length: 15,
-      memberId: '001'
-    },
-    {
-      type: DISPLAY_TYPES.MENTION,
-      start: 32,
-      end: 49,
-      length: 17,
-      memberId: '002'
-    }
+    mentionDisplay(3, '@user1 name end', '001'),
+    mentionDisplay(32, '@user2 nameee end', '002')
   ])
 })
 
@@ -137,15 +92,7 @@ test('apply mention without space', function (t) {
   t.is(clearCalled, 1)
 
   t.is(p.text, '@user ')
-  t.alike(p.display, [
-    {
-      type: DISPLAY_TYPES.MENTION,
-      start: 0,
-      end: 5,
-      length: 5,
-      memberId: '1'
-    }
-  ])
+  t.alike(p.display, [mentionDisplay(0, '@user', '1')])
 })
 
 test('appendText clears with onclear when word is not a mention', (t) => {
@@ -173,15 +120,7 @@ test('setMention replaces word and inserts display entry', (t) => {
   const { text, display } = p.flush()
   t.is(text, '@user ')
   t.is(display.length, 1)
-  t.alike(display, [
-    {
-      type: DISPLAY_TYPES.MENTION,
-      start: 0,
-      end: 5,
-      length: 5,
-      memberId: '1'
-    }
-  ])
+  t.alike(display, [mentionDisplay(0, '@user', '1')])
 })
 
 test('setMention returns false if current word does not match', (t) => {
@@ -212,15 +151,7 @@ test('setMention 1st time then go to start setMention 2nd time', (t) => {
   t.ok(success1)
   t.is(p.text, '@nice ')
   t.is(p.text.slice(p.display[0].start, p.display[0].end), '@nice')
-  t.alike(p.display, [
-    {
-      type: DISPLAY_TYPES.MENTION,
-      start: 0,
-      end: 5,
-      length: 5,
-      memberId: '1'
-    }
-  ])
+  t.alike(p.display, [mentionDisplay(0, '@nice', '1')])
 
   p.setPosition(0)
   p.appendText(' ')
@@ -237,20 +168,8 @@ test('setMention 1st time then go to start setMention 2nd time', (t) => {
   t.is(p.text, '@nice @nice ')
   t.is(p.text.slice(p.display[0].start, p.display[0].end), '@nice')
   t.alike(p.display, [
-    {
-      type: DISPLAY_TYPES.MENTION,
-      start: 0,
-      end: 5,
-      length: 5,
-      memberId: '2'
-    },
-    {
-      type: DISPLAY_TYPES.MENTION,
-      start: 6,
-      end: 11,
-      length: 5,
-      memberId: '1'
-    }
+    mentionDisplay(0, '@nice', '2'),
+    mentionDisplay(6, '@nice', '1')
   ])
 })
 
@@ -272,15 +191,7 @@ test('mention the name that contain space and default-emoji', (t) => {
   t.ok(success1)
   t.is(p.text, '@dinh 🟢 ')
   t.is(p.text.slice(p.display[0].start, p.display[0].end), '@dinh 🟢')
-  t.alike(p.display, [
-    {
-      type: DISPLAY_TYPES.MENTION,
-      start: 0,
-      end: 8,
-      length: 8,
-      memberId: '1'
-    }
-  ])
+  t.alike(p.display, [mentionDisplay(0, '@dinh 🟢', '1')])
 
   p.resync('@dinh 🟢 @')
   t.is(mentionCalled, 2)
@@ -288,35 +199,15 @@ test('mention the name that contain space and default-emoji', (t) => {
 
   t.is(p.text, '@dinh 🟢 @')
   t.is(p.text.slice(p.display[0].start, p.display[0].end), '@dinh 🟢')
-  t.alike(p.display, [
-    {
-      type: DISPLAY_TYPES.MENTION,
-      start: 0,
-      end: 8,
-      length: 8,
-      memberId: '1'
-    }
-  ])
+  t.alike(p.display, [mentionDisplay(0, '@dinh 🟢', '1')])
 
   const success2 = p.setMention('@', '@dinh text only', '2')
   t.ok(success2)
   t.is(p.text, '@dinh 🟢 @dinh text only ')
   t.is(p.text.slice(p.display[1].start, p.display[1].end), '@dinh text only')
   t.alike(p.display, [
-    {
-      type: DISPLAY_TYPES.MENTION,
-      start: 0,
-      end: 8,
-      length: 8,
-      memberId: '1'
-    },
-    {
-      type: DISPLAY_TYPES.MENTION,
-      start: 9,
-      end: 24,
-      length: 15,
-      memberId: '2'
-    }
+    mentionDisplay(0, '@dinh 🟢', '1'),
+    mentionDisplay(9, '@dinh text only', '2')
   ])
 
   p.resync('@dinh 🟢 @dinh text only @dinh')
@@ -332,50 +223,22 @@ test('mention at the start, before another mentioned', function (t) {
   p.resync('@a')
   t.is(p.text, '@alice ')
   t.is(p.position, 7)
-  t.alike(p.display, [
-    {
-      type: DISPLAY_TYPES.MENTION,
-      start: 0,
-      end: 6,
-      memberId: 'member-id-a',
-      length: 6
-    }
-  ])
+  t.alike(p.display, [mentionDisplay(0, '@alice', 'member-id-a')])
 
   p.setPosition(0)
   p.resync('@a @alice ')
   t.is(p.text, '@alice @alice ')
   t.is(p.position, 6)
   t.alike(p.display, [
-    {
-      type: DISPLAY_TYPES.MENTION,
-      start: 0,
-      end: 6,
-      memberId: 'member-id-a',
-      length: 6
-    },
-    {
-      type: DISPLAY_TYPES.MENTION,
-      start: 7,
-      end: 13,
-      memberId: 'member-id-a',
-      length: 6
-    }
+    mentionDisplay(0, '@alice', 'member-id-a'),
+    mentionDisplay(7, '@alice', 'member-id-a')
   ])
 })
 
 test('mention at the start, before another mentioned and text', function (t) {
   const p = makeParser({
     text: '7777@alice ',
-    display: [
-      {
-        type: DISPLAY_TYPES.MENTION,
-        start: 4,
-        end: 10,
-        memberId: 'member-id-a',
-        length: 6
-      }
-    ],
+    display: [mentionDisplay(4, '@alice', 'member-id-a')],
     onmention: (mention) => p.setMention(mention, '@alice', 'member-id-a')
   })
 
@@ -383,19 +246,7 @@ test('mention at the start, before another mentioned and text', function (t) {
   t.is(p.text, '@alice 7777@alice ')
   t.is(p.position, 6)
   t.alike(p.display, [
-    {
-      type: DISPLAY_TYPES.MENTION,
-      start: 0,
-      end: 6,
-      memberId: 'member-id-a',
-      length: 6
-    },
-    {
-      type: DISPLAY_TYPES.MENTION,
-      start: 11,
-      end: 17,
-      memberId: 'member-id-a',
-      length: 6
-    }
+    mentionDisplay(0, '@alice', 'member-id-a'),
+    mentionDisplay(11, '@alice', 'member-id-a')
   ])
 })

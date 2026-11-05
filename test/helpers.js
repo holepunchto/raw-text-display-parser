@@ -1,4 +1,14 @@
 const Parser = require('..')
+const { DISPLAY_TYPES } = require('../utils')
+
+const {
+  HTTP_LINK,
+  PEAR_LINK,
+  MENTION,
+  EMOJI,
+  ORDERED_LIST_ITEM,
+  UNORDERED_LIST_ITEM
+} = DISPLAY_TYPES
 
 const makeParser = (options = {}) => {
   const p = new Parser({
@@ -39,4 +49,55 @@ const makeParser = (options = {}) => {
   return p
 }
 
-module.exports = { makeParser }
+const display = (type, start, length, extra = {}) => ({
+  type,
+  start,
+  end: start + length,
+  length,
+  ...extra
+})
+
+const linkDisplay = (start, content) =>
+  display(HTTP_LINK, start, content.length, { content })
+
+const pearLinkDisplay = (start, content) =>
+  display(PEAR_LINK, start, content.length, { content })
+
+const mentionDisplay = (start, mention, memberId) =>
+  display(MENTION, start, mention.length, { memberId })
+
+const emojiDisplay = (start, content, length = 2) =>
+  display(EMOJI, start, length, { content })
+
+const customEmojiDisplay = (start, content) =>
+  display(EMOJI, start, content.length + 2, { content })
+
+const orderedListDisplay = (start, index) => {
+  const content = `${index}. `
+  return display(ORDERED_LIST_ITEM, start, content.length, { content, index })
+}
+
+const unorderedListDisplay = (start) =>
+  display(UNORDERED_LIST_ITEM, start, 2, { content: '● ' })
+
+const makeOrderedListParser = ({ text = '', display = [] } = {}) =>
+  makeParser({
+    text,
+    display: display.map((start, index) => orderedListDisplay(start, index + 1))
+  })
+
+const makeUnorderedListParser = ({ text = '', display = [] } = {}) =>
+  makeParser({ text, display: display.map(unorderedListDisplay) })
+
+module.exports = {
+  makeParser,
+  makeOrderedListParser,
+  makeUnorderedListParser,
+  linkDisplay,
+  pearLinkDisplay,
+  mentionDisplay,
+  emojiDisplay,
+  customEmojiDisplay,
+  orderedListDisplay,
+  unorderedListDisplay
+}

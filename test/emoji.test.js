@@ -1,7 +1,6 @@
 const test = require('brittle')
 
-const { makeParser } = require('./helpers')
-const { DISPLAY_TYPES } = require('../utils')
+const { makeParser, emojiDisplay, customEmojiDisplay } = require('./helpers')
 
 test('setEmoji normally', (t) => {
   const p = makeParser()
@@ -9,15 +8,7 @@ test('setEmoji normally', (t) => {
   p.appendText(':smi')
 
   t.is(p.text, '😄')
-  t.alike(p.display, [
-    {
-      type: DISPLAY_TYPES.EMOJI,
-      start: 0,
-      end: 2,
-      content: 'smile',
-      length: 2
-    }
-  ])
+  t.alike(p.display, [emojiDisplay(0, 'smile')])
 
   p.setPosition(0)
   p.appendText(' ')
@@ -28,20 +19,8 @@ test('setEmoji normally', (t) => {
   t.is(p.text, ':keet_party: 😄')
 
   t.alike(p.display, [
-    {
-      type: DISPLAY_TYPES.EMOJI,
-      start: 0,
-      end: 12,
-      content: 'keet_party',
-      length: 12
-    },
-    {
-      type: DISPLAY_TYPES.EMOJI,
-      start: 13,
-      end: 15,
-      content: 'smile',
-      length: 2
-    }
+    customEmojiDisplay(0, 'keet_party'),
+    emojiDisplay(13, 'smile')
   ])
 })
 
@@ -51,15 +30,7 @@ test('setEmoji replaces shortcode with emoji', (t) => {
   p.appendText(':smile:')
 
   t.is(p.text, '😄')
-  t.alike(p.display, [
-    {
-      type: DISPLAY_TYPES.EMOJI,
-      start: 0,
-      end: 2,
-      content: 'smile',
-      length: 2
-    }
-  ])
+  t.alike(p.display, [emojiDisplay(0, 'smile')])
 })
 
 test('setEmoji should prioritise emoji over input !== code', (t) => {
@@ -68,15 +39,7 @@ test('setEmoji should prioritise emoji over input !== code', (t) => {
   p.appendText(':smil')
 
   t.is(p.text, '😄')
-  t.alike(p.display, [
-    {
-      type: DISPLAY_TYPES.EMOJI,
-      start: 0,
-      end: 2,
-      content: 'smile',
-      length: 2
-    }
-  ])
+  t.alike(p.display, [emojiDisplay(0, 'smile')])
 })
 
 test('setEmoji returns false if shortcode not found', (t) => {
@@ -110,15 +73,7 @@ test('apply emoji space check', function (t) {
   t.is(clearCalled, 1)
 
   t.is(p.text, ':keet_party: ')
-  t.alike(p.display, [
-    {
-      type: DISPLAY_TYPES.EMOJI,
-      start: 0,
-      end: 12,
-      content: 'keet_party',
-      length: 12
-    }
-  ])
+  t.alike(p.display, [customEmojiDisplay(0, 'keet_party')])
 
   p.appendText('awesome')
   t.is(p.text, ':keet_party: awesome')
@@ -132,15 +87,7 @@ test('ondefaultemoji can set display mark for default emoji (with trailing space
 
   t.is(p.text, '😀 ')
 
-  t.alike(p.display, [
-    {
-      type: DISPLAY_TYPES.EMOJI,
-      start: 0,
-      end: '😀'.length,
-      content: 'grinning',
-      length: '😀'.length
-    }
-  ])
+  t.alike(p.display, [emojiDisplay(0, 'grinning', '😀'.length)])
 })
 
 test('ondefaultemoji does not recurse when resync leaves cursor before an uncovered emoji word', (t) => {
@@ -150,15 +97,7 @@ test('ondefaultemoji does not recurse when resync leaves cursor before an uncove
   p.resync('a 😀')
 
   t.is(p.text, 'a 😀')
-  t.alike(p.display, [
-    {
-      type: DISPLAY_TYPES.EMOJI,
-      start: 2,
-      end: 2 + '😀'.length,
-      content: 'grinning',
-      length: '😀'.length
-    }
-  ])
+  t.alike(p.display, [emojiDisplay(2, 'grinning', '😀'.length)])
 })
 
 test('setEmoji normally then type in middle to remove it', (t) => {
@@ -169,15 +108,7 @@ test('setEmoji normally then type in middle to remove it', (t) => {
 
   t.ok(success1)
   t.is(p.text, ':face: ')
-  t.alike(p.display, [
-    {
-      type: DISPLAY_TYPES.EMOJI,
-      start: 0,
-      end: 6,
-      content: 'face',
-      length: 6
-    }
-  ])
+  t.alike(p.display, [customEmojiDisplay(0, 'face')])
 
   p.setPosition(1)
   p.appendText('x')
@@ -192,30 +123,14 @@ test('setEmoji normally then type outside not remove it', (t) => {
   p.appendText('x :smi')
 
   t.is(p.text, 'x 😄')
-  t.alike(p.display, [
-    {
-      type: DISPLAY_TYPES.EMOJI,
-      start: 2,
-      end: 4,
-      content: 'smile',
-      length: 2
-    }
-  ])
+  t.alike(p.display, [emojiDisplay(2, 'smile')])
 
   p.setPosition(2)
   p.backspace()
   p.backspace()
 
   t.is(p.text, '😄')
-  t.alike(p.display, [
-    {
-      type: DISPLAY_TYPES.EMOJI,
-      start: 0,
-      end: 2,
-      content: 'smile',
-      length: 2
-    }
-  ])
+  t.alike(p.display, [emojiDisplay(0, 'smile')])
 })
 test('setUnicodeEmoji inserts a display mark for an existing unicode emoji range', (t) => {
   const p = makeParser()
@@ -225,15 +140,7 @@ test('setUnicodeEmoji inserts a display mark for an existing unicode emoji range
   const ok = p.setUnicodeEmoji(3, 3 + '😀'.length, 'grinning')
 
   t.ok(ok)
-  t.alike(p.display, [
-    {
-      type: DISPLAY_TYPES.EMOJI,
-      start: 3,
-      end: 3 + '😀'.length,
-      content: 'grinning',
-      length: '😀'.length
-    }
-  ])
+  t.alike(p.display, [emojiDisplay(3, 'grinning', '😀'.length)])
 
   t.is(p.text, 'hi 😀!')
 })
@@ -253,20 +160,8 @@ test('setUnicodeEmoji clears previous overlapping emoji marks', (t) => {
   p.appendText('😀😃')
 
   t.alike(p.display, [
-    {
-      type: DISPLAY_TYPES.EMOJI,
-      start: 0,
-      end: '😀'.length,
-      content: 'grinning',
-      length: '😀'.length
-    },
-    {
-      type: DISPLAY_TYPES.EMOJI,
-      start: '😀'.length,
-      end: '😀'.length + '😃'.length,
-      content: 'smiley',
-      length: '😃'.length
-    }
+    emojiDisplay(0, 'grinning', '😀'.length),
+    emojiDisplay('😀'.length, 'smiley', '😃'.length)
   ])
 })
 
@@ -297,20 +192,8 @@ test('setUnicodeEmoji inserts marks in sorted order by start', (t) => {
 
   // should be ordered by start
   t.alike(p.display, [
-    {
-      type: DISPLAY_TYPES.EMOJI,
-      start: firstStart,
-      end: firstStart + '😀'.length,
-      content: 'grinning',
-      length: '😀'.length
-    },
-    {
-      type: DISPLAY_TYPES.EMOJI,
-      start: secondStart,
-      end: secondStart + '😃'.length,
-      content: 'smiley',
-      length: '😃'.length
-    }
+    emojiDisplay(firstStart, 'grinning', '😀'.length),
+    emojiDisplay(secondStart, 'smiley', '😃'.length)
   ])
 })
 
@@ -339,15 +222,7 @@ test('ondefaultemoji reuses an existing space after the emoji', (t) => {
 
   t.is(p.text, 'a 😀 b')
   t.is(p.position, 2 + '😀'.length)
-  t.alike(p.display, [
-    {
-      type: DISPLAY_TYPES.EMOJI,
-      start: 2,
-      end: 2 + '😀'.length,
-      content: 'grinning',
-      length: '😀'.length
-    }
-  ])
+  t.alike(p.display, [emojiDisplay(2, 'grinning', '😀'.length)])
 })
 
 test('emoji at the start, before another emoji-ed', function (t) {
@@ -358,34 +233,14 @@ test('emoji at the start, before another emoji-ed', function (t) {
   p.resync(':ke')
   t.is(p.text, ':keet_party: ')
   t.is(p.position, 13)
-  t.alike(p.display, [
-    {
-      type: DISPLAY_TYPES.EMOJI,
-      start: 0,
-      end: 12,
-      content: 'keet_party',
-      length: 12
-    }
-  ])
+  t.alike(p.display, [customEmojiDisplay(0, 'keet_party')])
 
   p.resync(':kee :keet_party: ')
   t.is(p.text, ':keet_party: :keet_party: ')
   t.is(p.position, 12)
   t.alike(p.display, [
-    {
-      type: DISPLAY_TYPES.EMOJI,
-      start: 0,
-      end: 12,
-      content: 'keet_party',
-      length: 12
-    },
-    {
-      type: DISPLAY_TYPES.EMOJI,
-      start: 13,
-      end: 25,
-      content: 'keet_party',
-      length: 12
-    }
+    customEmojiDisplay(0, 'keet_party'),
+    customEmojiDisplay(13, 'keet_party')
   ])
 })
 

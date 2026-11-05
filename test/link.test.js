@@ -1,21 +1,12 @@
 const test = require('brittle')
 
-const { makeParser } = require('./helpers')
-const { DISPLAY_TYPES } = require('../utils')
+const { makeParser, linkDisplay } = require('./helpers')
 
 test('setLink creates http-link display entry', (t) => {
   const p = makeParser()
   const link = 'http://example.com'
   p.appendText(link)
-  t.alike(p.display, [
-    {
-      type: DISPLAY_TYPES.HTTP_LINK,
-      start: 0,
-      end: 18,
-      content: link,
-      length: 18
-    }
-  ])
+  t.alike(p.display, [linkDisplay(0, link)])
 })
 
 test('setLink with text before link', (t) => {
@@ -23,15 +14,7 @@ test('setLink with text before link', (t) => {
   const text = 'Hello http://example.com'
   const link = 'http://example.com'
   p.resync(text)
-  t.alike(p.display, [
-    {
-      type: DISPLAY_TYPES.HTTP_LINK,
-      start: 6,
-      end: 24,
-      content: link,
-      length: 18
-    }
-  ])
+  t.alike(p.display, [linkDisplay(6, link)])
 })
 
 test('setLink with text after link', (t) => {
@@ -39,15 +22,7 @@ test('setLink with text after link', (t) => {
   const text = 'http://example.com world'
   const link = 'http://example.com'
   p.resync(text)
-  t.alike(p.display, [
-    {
-      type: DISPLAY_TYPES.HTTP_LINK,
-      start: 0,
-      end: 18,
-      content: link,
-      length: 18
-    }
-  ])
+  t.alike(p.display, [linkDisplay(0, link)])
 })
 
 test('setLink with text before and after link', (t) => {
@@ -55,15 +30,7 @@ test('setLink with text before and after link', (t) => {
   const text = 'Hello http://example.com world'
   const link = 'http://example.com'
   p.resync(text)
-  t.alike(p.display, [
-    {
-      type: DISPLAY_TYPES.HTTP_LINK,
-      start: 6,
-      end: 24,
-      content: link,
-      length: 18
-    }
-  ])
+  t.alike(p.display, [linkDisplay(6, link)])
 })
 
 test('setLink with text line before link', (t) => {
@@ -71,15 +38,7 @@ test('setLink with text line before link', (t) => {
   const text = 'Hello\nhttp://example.com'
   const link = 'http://example.com'
   p.resync(text)
-  t.alike(p.display, [
-    {
-      type: DISPLAY_TYPES.HTTP_LINK,
-      start: 6,
-      end: 24,
-      content: link,
-      length: 18
-    }
-  ])
+  t.alike(p.display, [linkDisplay(6, link)])
 })
 
 test('setLink with text line after link', (t) => {
@@ -87,30 +46,14 @@ test('setLink with text line after link', (t) => {
   const text = 'http://example.com\nworld'
   const link = 'http://example.com'
   p.resync(text)
-  t.alike(p.display, [
-    {
-      type: DISPLAY_TYPES.HTTP_LINK,
-      start: 0,
-      end: 18,
-      content: link,
-      length: 18
-    }
-  ])
+  t.alike(p.display, [linkDisplay(0, link)])
 })
 
 test('setLink with text lines before and after link', (t) => {
   const p = makeParser()
   const text = 'Hello\nhttp://example.com\nworld'
   p.resync(text)
-  t.alike(p.display, [
-    {
-      type: DISPLAY_TYPES.HTTP_LINK,
-      start: 6,
-      end: 24,
-      content: 'http://example.com',
-      length: 18
-    }
-  ])
+  t.alike(p.display, [linkDisplay(6, 'http://example.com')])
 })
 
 test('resync fires onlink for every link in a multi-link paste', (t) => {
@@ -162,15 +105,7 @@ test('resync does not re-fire onlink for already preserved display entries', (t)
 
   // establish link1 as already parsed in display
   p.text = link1 + ' some text'
-  p.display = [
-    {
-      type: DISPLAY_TYPES.HTTP_LINK,
-      start: 0,
-      end: link1.length,
-      content: link1,
-      length: link1.length
-    }
-  ]
+  p.display = [linkDisplay(0, link1)]
   p.position = p.text.length
 
   links.length = 0 // reset after setup
