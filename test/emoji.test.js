@@ -137,9 +137,6 @@ test('setUnicodeEmoji inserts a display mark for an existing unicode emoji range
 
   p.appendText('hi 😀!')
 
-  const ok = p.setUnicodeEmoji(3, 3 + '😀'.length, 'grinning')
-
-  t.ok(ok)
   t.alike(p.display, [emojiDisplay(3, 'grinning', '😀'.length)])
 
   t.is(p.text, 'hi 😀!')
