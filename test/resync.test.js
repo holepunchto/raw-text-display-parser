@@ -721,7 +721,7 @@ test('resync - deleting the first character of an item removes it', (t) => {
   t.alike(p.display, [])
 })
 
-test('resync - deleting the last character of an item removes it', (t) => {
+test('resync - deleting the 2nd character of an item removes it', (t) => {
   const p = makeParser({
     text: '@alice hi',
     display: [mentionDisplay(0, '@alice', 'member-id-a')]
@@ -732,6 +732,24 @@ test('resync - deleting the last character of an item removes it', (t) => {
 
   t.is(p.text, '@lice hi')
   t.is(p.position, 1)
+  t.alike(p.display, [])
+})
+
+test('resync - deleting the last character of an item removes it', (t) => {
+  const p = makeParser({
+    text: '@alice hi',
+    display: [mentionDisplay(0, '@alice', 'member-id-a')],
+    onmention: (mention) => {
+      if (mention.startsWith('@alice'))
+        return p.setMention(mention, '@alice', 'member-id-a')
+    }
+  })
+
+  p.setPosition(6)
+  p.resync('@alic hi')
+
+  t.is(p.text, '@alic hi')
+  t.is(p.position, 5)
   t.alike(p.display, [])
 })
 
