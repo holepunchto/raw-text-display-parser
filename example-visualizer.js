@@ -224,8 +224,8 @@ function createParserVisualizer(container, { parser: p, typeNames }) {
         })
         parent.appendChild(span)
       }
-      if (to === p.position && points[points.length - 1] === to) {
-        if (to === text.length) parent.appendChild(caret())
+      if (to === p.position && to === text.length && parent === rendered) {
+        parent.appendChild(caret())
       }
     }
 
