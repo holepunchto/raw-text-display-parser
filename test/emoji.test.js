@@ -151,7 +151,7 @@ test('setUnicodeEmoji returns false for invalid ranges', (t) => {
   t.not(p.setUnicodeEmoji(2, 999, 'grinning'))
 })
 
-test('setUnicodeEmoji clears previous overlapping emoji marks', (t) => {
+test('parse consecutive emojis without spaces', (t) => {
   const p = makeParser()
 
   p.appendText('😀😃')
