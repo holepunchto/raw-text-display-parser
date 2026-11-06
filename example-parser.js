@@ -103,7 +103,7 @@ function bindTextarea(inp, p, onChange = () => {}) {
     const start = inp.selectionStart
     const end = inp.selectionEnd
 
-    if (start !== p.position) p.setPosition(start)
+    p.setPosition(start)
     if (start !== end) p.selectRange(start, end)
 
     onChange()
