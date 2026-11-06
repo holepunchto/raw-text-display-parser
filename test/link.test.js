@@ -56,6 +56,14 @@ test('setLink with text lines before and after link', (t) => {
   t.alike(p.display, [linkDisplay(6, 'http://example.com')])
 })
 
+test('move the caret and setLink with text lines before and after link', (t) => {
+  const p = makeParser()
+  p.resync('Hello\n\nworld')
+  p.setPosition(6)
+  p.resync('Hello\nhttp://example.com\nworld')
+  t.alike(p.display, [linkDisplay(6, 'http://example.com')])
+})
+
 test('resync fires onlink for every link in a multi-link paste', (t) => {
   const links = []
   const p = makeParser({
