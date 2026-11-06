@@ -15,7 +15,7 @@ const makeParser = (options = {}) => {
     onlink: (link) => p.setLink(link, link),
     onpearlink: (link) => p.setPearLink(link),
     onmention: (mention) => {
-      if (mention.startsWith('@a'))
+      if (mention.startsWith('@a') && mention.length <= 6)
         return p.setMention(mention, '@alice', 'member-id-a')
       if (mention.startsWith('@b'))
         return p.setMention(mention, '@bob', 'member-id-b')

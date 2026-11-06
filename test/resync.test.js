@@ -776,6 +776,7 @@ test('resync - consecutive edits keep items in sync', (t) => {
 
   p.setPosition(9)
   p.resync('ab @alice!')
+  t.is(p.text, 'ab @alice!')
   t.is(p.position, 10)
   t.alike(p.display, [mentionDisplay(3, '@alice', 'member-id-a')])
 })
