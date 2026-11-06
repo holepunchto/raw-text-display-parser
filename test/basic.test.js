@@ -1,108 +1,67 @@
 const test = require('brittle')
-const Parser = require('..')
-const { DISPLAY_TYPES } = require('../utils')
 
-const { HTTP_LINK, PEAR_LINK, MENTION, EMOJI } = DISPLAY_TYPES
+const {
+  makeParser,
+  linkDisplay,
+  pearLinkDisplay,
+  mentionDisplay,
+  emojiDisplay,
+  customEmojiDisplay
+} = require('./helpers')
 
 test('httpLink', (t) => {
   const text = 'https://keet.io'
 
-  const p = new Parser({ onlink: (link) => p.setLink(link, link) })
+  const p = makeParser()
   p.appendText(text)
 
-  t.alike(p.display, [
-    {
-      type: HTTP_LINK,
-      start: 0,
-      end: 15,
-      content: 'https://keet.io',
-      length: 15
-    }
-  ])
+  t.alike(p.display, [linkDisplay(0, 'https://keet.io')])
 })
 
 test('pearLink', (t) => {
   const text = 'pear://keet/abcd'
 
-  const p = new Parser({ onpearlink: (link) => p.setPearLink(link) })
+  const p = makeParser()
   p.appendText(text)
 
-  t.alike(p.display, [
-    {
-      type: PEAR_LINK,
-      start: 0,
-      end: 16,
-      content: 'pear://keet/abcd',
-      length: 16
-    }
-  ])
+  t.alike(p.display, [pearLinkDisplay(0, 'pear://keet/abcd')])
 })
 
 test('mention', (t) => {
-  const text = '@username'
-  const memberId = 123
+  const p = makeParser()
+  p.appendText('@bob')
 
-  const p = new Parser({
-    onmention: (mention) => p.setMention(mention, mention, memberId)
-  })
-  p.appendText(text)
-
-  t.alike(p.display, [
-    {
-      type: MENTION,
-      start: 0,
-      end: 9,
-      memberId,
-      length: 9
-    }
-  ])
+  t.alike(p.display, [mentionDisplay(0, '@bob', 'member-id-b')])
 })
 
 test('emoji', (t) => {
-  const text = ':pear:'
-  const emojis = { ':pear:': '🍐' }
+  const p = makeParser()
+  p.appendText(':pear:')
 
-  const p = new Parser({
-    onemoji: (emoji) => p.setEmoji(emoji, emoji, emojis[emoji])
-  })
-  p.appendText(text)
+  t.alike(p.display, [emojiDisplay(0, 'pear')])
+})
 
-  t.alike(p.display, [
-    {
-      type: EMOJI,
-      start: 0,
-      end: 2,
-      content: 'pear',
-      length: 2
-    }
-  ])
+test('custom emoji', (t) => {
+  const p = makeParser()
+  p.appendText(':keet_party:')
+
+  t.alike(p.display, [customEmojiDisplay(0, 'keet_party')])
 })
 
 test('emoji not found', (t) => {
-  const text = ':pear:'
-  const emojis = {}
+  const text = ':pearx:'
 
-  const p = new Parser({
-    onemoji: (emoji) => p.setEmoji(emoji, emoji, emojis[emoji])
-  })
+  const p = makeParser()
   p.appendText(text)
 
-  t.alike(p.display, [
-    {
-      type: EMOJI,
-      start: 0,
-      end: 6,
-      content: 'pear',
-      length: 6
-    }
-  ])
+  t.alike(p.display, [])
 })
 
 test('ondefaultemoji is called for default emoji tokens', (t) => {
   let called = 0
   let last = null
 
-  const p = new Parser({
+  const p = makeParser({
     ondefaultemoji: (word) => {
       called++
       last = word
@@ -116,19 +75,11 @@ test('ondefaultemoji is called for default emoji tokens', (t) => {
 
 test('flush', (t) => {
   const text = 'http://keet.io'
-  const p = new Parser({ onlink: (link) => p.setLink(link, link) })
+  const p = makeParser()
   p.appendText(text)
 
   t.is(p.text, text)
-  t.alike(p.display, [
-    {
-      type: HTTP_LINK,
-      start: 0,
-      end: 14,
-      content: 'http://keet.io',
-      length: 14
-    }
-  ])
+  t.alike(p.display, [linkDisplay(0, 'http://keet.io')])
 
   const data = p.flush('')
 

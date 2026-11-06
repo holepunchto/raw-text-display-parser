@@ -1,11 +1,11 @@
-export const BlankSpace = ' '
-export const NewLine = '\n'
-export const UnorderedListInputMark = '-'
-export const UnorderedListOutMark = '●'
-export const OrderedListInputMark = '1'
-export const OrderedListInputDotMark = '.'
+const BlankSpace = ' '
+const NewLine = '\n'
+const UnorderedListInputMark = '-'
+const UnorderedListOutMark = '●'
+const OrderedListInputMark = '1'
+const OrderedListInputDotMark = '.'
 
-export const DISPLAY_TYPES = {
+const DISPLAY_TYPES = {
   MENTION: 1,
   HTTP_LINK: 2,
   PEAR_LINK: 3,
@@ -20,17 +20,17 @@ export const DISPLAY_TYPES = {
   UNORDERED_LIST_ITEM: 12
 }
 
-export function overlaps(a, start, end) {
+function overlaps(a, start, end) {
   if (a.start <= start && start < a.end) return true
   if (start <= a.start && a.start < end) return true
   return false
 }
 
-export function isMention(word) {
+function isMention(word) {
   return word[0] === '@'
 }
 
-export function isLink(word) {
+function isLink(word) {
   word = word.toLowerCase()
   return (
     word.startsWith('http://') ||
@@ -39,32 +39,32 @@ export function isLink(word) {
   )
 }
 
-export function isEmoji(word) {
+function isEmoji(word) {
   return word[0] === ':'
 }
 
-export const EmojiSequence =
+const EmojiSequence =
   /\p{Extended_Pictographic}(?:\p{Emoji_Modifier}|\u{FE0F}|[\u{E0020}-\u{E007F}])*(?:\u{200D}\p{Extended_Pictographic}(?:\p{Emoji_Modifier}|\u{FE0F})*)*/gu
 
 // next to text, text-style symbols (™) need VS16 or a sequence
-export const EmojiStyleSequence =
+const EmojiStyleSequence =
   /(?:(?=\p{Extended_Pictographic})\p{Emoji_Presentation}(?!\u{FE0E})|\p{Extended_Pictographic}(?=\u{FE0F}|\p{Emoji_Modifier}|\u{200D}))(?:\p{Emoji_Modifier}|\u{FE0F}|[\u{E0020}-\u{E007F}])*(?:\u{200D}\p{Extended_Pictographic}(?:\p{Emoji_Modifier}|\u{FE0F})*)*/gu
 
-export function isDefaultEmoji(word) {
+function isDefaultEmoji(word) {
   return /\p{Extended_Pictographic}/u.test(word)
 }
 
-export function isUnorderedList(mark) {
+function isUnorderedList(mark) {
   return mark === `${UnorderedListInputMark}${BlankSpace}`
 }
 
-export function isOrderedListEntry(mark) {
+function isOrderedListEntry(mark) {
   return (
     mark === `${OrderedListInputMark}${OrderedListInputDotMark}${BlankSpace}`
   )
 }
 
-export function isOrderedList(mark) {
+function isOrderedList(mark) {
   const dot = mark.indexOf(OrderedListInputDotMark)
   const index = Number(mark.slice(0, dot))
   return (
@@ -75,19 +75,43 @@ export function isOrderedList(mark) {
   )
 }
 
-export function noop() {}
+function noop() {}
 
-export function isEndWord(c) {
+function isEndWord(c) {
   return c === BlankSpace || c === NewLine || c === '\t'
 }
 
-export function getLineStart(text, position) {
+function getLineStart(text, position) {
   while (position > 0 && text[position - 1] !== NewLine) position--
   return position
 }
 
-export function getLineEnd(text, start) {
+function getLineEnd(text, start) {
   const index = text.indexOf(NewLine, start)
   if (index === -1) return text.length
   return index
+}
+
+module.exports = {
+  BlankSpace,
+  NewLine,
+  UnorderedListInputMark,
+  UnorderedListOutMark,
+  OrderedListInputMark,
+  OrderedListInputDotMark,
+  DISPLAY_TYPES,
+  overlaps,
+  isMention,
+  isLink,
+  isEmoji,
+  EmojiSequence,
+  EmojiStyleSequence,
+  isDefaultEmoji,
+  isUnorderedList,
+  isOrderedListEntry,
+  isOrderedList,
+  noop,
+  isEndWord,
+  getLineStart,
+  getLineEnd
 }

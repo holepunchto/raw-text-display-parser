@@ -3,100 +3,73 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title></title>
-  </head>
-  <body>
-    <script type="text/javascript">
-      module = { exports: {} }
-    </script>
-    <textarea></textarea>
-    <pre></pre>
-    <pre></pre>
-    <script type="text/javascript" src="index.js"></script>
-    <script type="text/javascript">
-      const Parser = module.exports
-
-      const emojis = {
-        ':lol:': '🤣',
-        ':pear:': '🍐'
+    <title>raw-text-display-parser example</title>
+    <style>
+      body {
+        font:
+          14px/1.4 system-ui,
+          sans-serif;
+        margin: 16px;
+        color: #222;
+        background: #fff;
       }
 
-      const p = new Parser({
-        onlink(link) {
-          console.log('got http link', link)
-          if (p.setLink(link, link)) {
-            inp.value = p.text
-            inp.selectionStart = p.position
-            inp.selectionEnd = p.position
-          }
-        },
-        onpearlink(link) {
-          console.log('got pear link', link)
-          if (p.setPearLink(link)) {
-            inp.value = p.text
-            inp.selectionStart = p.position
-            inp.selectionEnd = p.position
-          }
-        },
-        onmention(mention) {
-          console.log('got mention', mention)
-          if (p.setMention(mention, mention, Math.random())) {
-            inp.value = p.text
-            inp.selectionStart = p.position
-            inp.selectionEnd = p.position
-          }
-        },
-        onemoji(emoji) {
-          if (emojis[emoji]) {
-            console.log('got emoji')
-            if (p.setEmoji(emoji, emoji, emojis[emoji])) {
-              console.log('set text', p.text)
-              inp.value = p.text
-              inp.selectionStart = p.position
-              inp.selectionEnd = p.position
-            }
-          }
-        }
+      h2 {
+        font-size: 13px;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: #666;
+        margin: 20px 0 6px;
+      }
+
+      textarea {
+        width: 100%;
+        box-sizing: border-box;
+        height: 110px;
+        font:
+          14px/1.4 ui-monospace,
+          monospace;
+        padding: 8px;
+      }
+
+      .hint {
+        color: #666;
+        font-size: 12px;
+      }
+    </style>
+  </head>
+
+  <body>
+    <h2>Input</h2>
+    <textarea></textarea>
+    <p class="hint">
+      Try: <code>@alice</code>, <code>https://keet.io</code>,
+      <code>pear://abc</code>, <code>:smile:</code>, <code>:keet_party:</code>,
+      a line starting with <code>- </code> or <code>1. </code>, or a unicode
+      emoji (😀).
+    </p>
+
+    <div id="visualizer"></div>
+    <script src="example-parser.js"></script>
+    <script src="example-visualizer.js"></script>
+    <script type="module">
+      const { Parser, typeNames } = await loadParser()
+
+      const parser = createParser(Parser, {
+        typeNames,
+        onCallback: (name, args) => viz.logCallback(name, args)
       })
 
-      const inp = document.getElementsByTagName('textarea')[0]
-      const echo = document.getElementsByTagName('pre')[0]
-      const result = document.getElementsByTagName('pre')[1]
+      const viz = createParserVisualizer(
+        document.getElementById('visualizer'),
+        { parser, typeNames }
+      )
 
-      inp.oninput = function (e) {
-        if (e.inputType === 'deleteContentBackward') {
-          p.backspace()
-        } else if (
-          e.inputType === 'insertText' ||
-          e.inputType === 'insertFromPaste'
-        ) {
-          p.appendText(e.data)
-        } else if (e.inputType === 'insertLineBreak') {
-          p.appendText('\n')
-        }
+      bindTextarea(document.querySelector('textarea'), parser, () =>
+        viz.render()
+      )
 
-        if (inp.value !== p.text) {
-          console.log('out of sync, resyncing')
-          p.resync(inp.value)
-          const start = inp.selectionStart
-          const end = inp.selectionEnd
-
-          if (start !== p.position) p.setPosition(start)
-          if (start !== end) p.selectRange(start, end)
-        }
-
-        echo.innerText = p.text
-        result.innerText = 'pos=' + p.position + ' word=' + p.word + '\n'
-        result.innerText += JSON.stringify(p.display, null, 2)
-      }
-
-      inp.onselectionchange = function (e) {
-        const start = inp.selectionStart
-        const end = inp.selectionEnd
-
-        if (start !== p.position) p.setPosition(start)
-        if (start !== end) p.selectRange(start, end)
-      }
+      viz.render()
     </script>
   </body>
 </html>

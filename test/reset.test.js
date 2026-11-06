@@ -1,9 +1,9 @@
 const test = require('brittle')
 
-const Parser = require('..')
+const { makeParser, pearLinkDisplay } = require('./helpers')
 
 test('reset clears text and display', (t) => {
-  const p = new Parser()
+  const p = makeParser()
 
   p.appendText('@john')
   p.setMention('@john', 'John', '1')
@@ -20,7 +20,7 @@ test('reset clears text and display', (t) => {
 })
 
 test('reset allows setting new text and display', (t) => {
-  const p = new Parser({
+  const p = makeParser({
     text: '@john',
     display: [{ type: 1, start: 0, end: 5, memberId: 'x' }]
   })
@@ -38,7 +38,7 @@ test('reset allows setting new text and display', (t) => {
 })
 
 test('reset also update start, end, word #1', (t) => {
-  const p = new Parser()
+  const p = makeParser()
 
   p.reset({ text: 'abc' })
 
@@ -52,7 +52,7 @@ test('reset also update start, end, word #1', (t) => {
 })
 
 test('reset also update start, end, word #2', (t) => {
-  const p = new Parser({
+  const p = makeParser({
     text: '@john',
     display: [{ type: 1, start: 0, end: 5, memberId: 'x' }]
   })
@@ -73,7 +73,7 @@ test('reset also update start, end, word #2', (t) => {
 
 test('reset also update start, end, word #3', (t) => {
   let params = null
-  const p = new Parser({
+  const p = makeParser({
     onpearlink(l) {
       params = l
       p.setPearLink(l)
@@ -85,9 +85,7 @@ test('reset also update start, end, word #3', (t) => {
 
   t.is(params, link)
   t.is(p.text, link)
-  t.alike(p.display, [
-    { type: 3, start: 0, end: 15, content: 'pear://keet/abc', length: 15 }
-  ])
+  t.alike(p.display, [pearLinkDisplay(0, 'pear://keet/abc')])
   t.is(p.position, 15)
   t.is(p.range, null)
   t.is(p.start, 0)

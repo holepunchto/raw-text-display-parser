@@ -1,9 +1,9 @@
 const test = require('brittle')
 
-const Parser = require('..')
+const { makeParser } = require('./helpers')
 
 test('appendText adds characters to the end when cursor is at end', (t) => {
-  const p = new Parser()
+  const p = makeParser()
 
   p.appendText('hello')
   t.is(p.text, 'hello')
@@ -11,7 +11,7 @@ test('appendText adds characters to the end when cursor is at end', (t) => {
 })
 
 test('appendText inserts characters in the middle of text', (t) => {
-  const p = new Parser()
+  const p = makeParser()
 
   p.appendText('helo')
   p.setPosition(2) // between "he|lo"
@@ -22,7 +22,7 @@ test('appendText inserts characters in the middle of text', (t) => {
 })
 
 test('appendText replaces selected range with new text', (t) => {
-  const p = new Parser()
+  const p = makeParser()
 
   p.appendText('abcdef')
   p.selectRange(2, 5) // select "cde"
@@ -34,7 +34,7 @@ test('appendText replaces selected range with new text', (t) => {
 })
 
 test('appendText at position 0 inserts at the beginning', (t) => {
-  const p = new Parser()
+  const p = makeParser()
 
   p.appendText('world')
   p.setPosition(0)
@@ -45,7 +45,7 @@ test('appendText at position 0 inserts at the beginning', (t) => {
 })
 
 test('appendText then backspace deletes last inserted char', (t) => {
-  const p = new Parser()
+  const p = makeParser()
 
   p.appendText('hi!')
   t.is(p.text, 'hi!')
@@ -55,7 +55,7 @@ test('appendText then backspace deletes last inserted char', (t) => {
 })
 
 test('backspace after range selection', (t) => {
-  const p = new Parser()
+  const p = makeParser()
 
   p.appendText('abcdef')
   p.selectRange(2, 5) // select "cde"
