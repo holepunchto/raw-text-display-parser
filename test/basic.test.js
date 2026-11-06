@@ -5,7 +5,8 @@ const {
   linkDisplay,
   pearLinkDisplay,
   mentionDisplay,
-  emojiDisplay
+  emojiDisplay,
+  customEmojiDisplay
 } = require('./helpers')
 
 test('httpLink', (t) => {
@@ -38,6 +39,13 @@ test('emoji', (t) => {
   p.appendText(':pear:')
 
   t.alike(p.display, [emojiDisplay(0, 'pear')])
+})
+
+test('custom emoji', (t) => {
+  const p = makeParser()
+  p.appendText(':keet_party:')
+
+  t.alike(p.display, [customEmojiDisplay(0, 'keet_party')])
 })
 
 test('emoji not found', (t) => {
